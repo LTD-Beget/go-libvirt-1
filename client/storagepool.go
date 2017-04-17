@@ -181,7 +181,7 @@ func (p *StoragePool) SetAutostart(autostart bool) error {
 }
 
 // StorageVolumeCreateXML creates a volume.
-func (p *StoragePool) StorageVolumeCreateXML(x string, flags StorageVolumeCreateFlags) (*StorageVolume, error) {
+func (p *StoragePool) StorageVolumeCreateXML(x string, flags libvirt.StorageVolumeCreateFlags) (*StorageVolume, error) {
 	req := libvirt.RemoteStorageVolCreateXmlReq{
 		Pool: &libvirt.RemoteStoragePool{
 			Name: p.Name,

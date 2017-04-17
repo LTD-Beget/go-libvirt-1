@@ -9,18 +9,17 @@ type StorageVolume struct {
 }
 
 // Resize resize a volume.
-func (v *StorageVolume) Resize(size uint64, flags StorageVolumeResizeFlags) error {
-	payload := struct {
-		Vol   StorageVolume
-		Size  uint64
-		Flags StorageVolumeResizeFlags
-	}{
-		Vol:   *v,
-		Size:  size,
-		Flags: flags,
-	}
+func (v *StorageVolume) Resize(size uint64, flags libvirt.StorageVolumeResizeFlags) error {
+	req := libvirt.RemoteStorageVolResizeReq{
+		Vol: &libvirt.RemoteStorageVolume{
+			Pool: v.Pool,
+			Name: v.Name,
+			Key:  v.Key,
+		},
+		Capacity: size,
+		Flags:    uint32(flags)}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return err
 	}
@@ -39,16 +38,16 @@ func (v *StorageVolume) Resize(size uint64, flags StorageVolumeResizeFlags) erro
 }
 
 // Delete deletes a volume.
-func (v *StorageVolume) Delete(flags StorageVolumeDeleteFlags) error {
-	payload := struct {
-		Vol   StorageVolume
-		Flags StorageVolumeDeleteFlags
-	}{
-		Vol:   *v,
-		Flags: flags,
-	}
+func (v *StorageVolume) Delete(flags libvirt.StorageVolumeDeleteFlags) error {
+	req := libvirt.RemoteStorageVolDeleteReq{
+		Vol: &libvirt.RemoteStorageVolume{
+			Pool: v.Pool,
+			Name: v.Name,
+			Key:  v.Key,
+		},
+		Flags: uint32(flags)}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return err
 	}
@@ -67,20 +66,18 @@ func (v *StorageVolume) Delete(flags StorageVolumeDeleteFlags) error {
 }
 
 // Download downloads a volume.
-func (v *StorageVolume) Download(s *Stream, offset uint64, length uint64, flags StorageVolumeDownloadFlags) error {
-	payload := struct {
-		Vol    StorageVolume
-		Offset uint64
-		Length uint64
-		Flags  StorageVolumeDownloadFlags
-	}{
-		Vol:    *v,
+func (v *StorageVolume) Download(s *Stream, offset uint64, length uint64, flags libvirt.StorageVolumeDownloadFlags) error {
+	req := libvirt.RemoteStorageVolDownloadReq{
+		Vol: &libvirt.RemoteStorageVolume{
+			Pool: v.Pool,
+			Name: v.Name,
+			Key:  v.Key,
+		},
 		Offset: offset,
 		Length: length,
-		Flags:  flags,
-	}
+		Flags:  uint32(flags)}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return err
 	}
@@ -103,20 +100,18 @@ func (v *StorageVolume) Download(s *Stream, offset uint64, length uint64, flags 
 }
 
 // Upload uploads a volume.
-func (v *StorageVolume) Upload(s *Stream, offset uint64, length uint64, flags StorageVolumeUploadFlags) error {
-	payload := struct {
-		Vol    StorageVolume
-		Offset uint64
-		Length uint64
-		Flags  StorageVolumeUploadFlags
-	}{
-		Vol:    *v,
+func (v *StorageVolume) Upload(s *Stream, offset uint64, length uint64, flags libvirt.StorageVolumeUploadFlags) error {
+	req := libvirt.RemoteStorageVolUploadReq{
+		Vol: &libvirt.RemoteStorageVolume{
+			Pool: v.Pool,
+			Name: v.Name,
+			Key:  v.Key,
+		},
 		Offset: offset,
 		Length: length,
-		Flags:  flags,
-	}
+		Flags:  uint32(flags)}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return err
 	}
