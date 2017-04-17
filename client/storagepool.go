@@ -15,36 +15,6 @@ type StoragePool struct {
 	l *Libvirt
 }
 
-// StoragePoolsFlags specifies storage pools to list.
-type StoragePoolsFlags uint32
-
-// These flags come in groups; if all bits from a group are 0,
-// then that group is not used to filter results.
-const (
-	StoragePoolsFlagInactive = 1 << iota
-	StoragePoolsFlagActive
-
-	StoragePoolsFlagPersistent
-	StoragePoolsFlagTransient
-
-	StoragePoolsFlagAutostart
-	StoragePoolsFlagNoAutostart
-
-	// pools by type
-	StoragePoolsFlagDir
-	StoragePoolsFlagFS
-	StoragePoolsFlagNETFS
-	StoragePoolsFlagLogical
-	StoragePoolsFlagDisk
-	StoragePoolsFlagISCSI
-	StoragePoolsFlagSCSI
-	StoragePoolsFlagMPATH
-	StoragePoolsFlagRBD
-	StoragePoolsFlagSheepdog
-	StoragePoolsFlagGluster
-	StoragePoolsFlagZFS
-)
-
 // StoragePoolLookupByName returns the storage pool associated with the provided name.
 // An error is returned if the requested storage pool is not found.
 func (l *Libvirt) StoragePoolLookupByName(name string) (*StoragePool, error) {
@@ -146,14 +116,9 @@ func (p *StoragePool) Refresh(flags uint32) error {
 
 // StoragePools returns a list of defined storage pools. Pools are filtered by
 // the provided flags. See StoragePools*.
-func (l *Libvirt) StoragePools(flags StoragePoolsFlags) ([]StoragePool, error) {
-	req := struct {
-		NeedResults uint32
-		Flags       StoragePoolsFlags
-	}{
-		NeedResults: 1,
-		Flags:       flags,
-	}
+func (l *Libvirt) StoragePools(flags libvirt.StoragePoolsFlags) ([]*StoragePool, error) {
+	req := libvirt.RemoteConnectListAllStoragePoolsReq{NeedResults: 1, Flags: uint32(flags)}
+	res := libvirt.RemoteConnectListAllStoragePoolsRes{}
 
 	buf, err := encode(&req)
 	if err != nil {
@@ -170,38 +135,34 @@ func (l *Libvirt) StoragePools(flags StoragePoolsFlags) ([]StoragePool, error) {
 		return nil, decodeError(r.Payload)
 	}
 
-	result := struct {
-		Pools []StoragePool
-		Count uint32
-	}{}
-
 	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
-	_, err = dec.Decode(&result)
+	_, err = dec.Decode(&res)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, p := range result.Pools {
-		p.l = l
+	var pools []*StoragePool
+	for _, pool := range res.Pools {
+		pools = append(pools, &StoragePool{RemoteStoragePool: *pool, l: l})
 	}
-	return result.Pools, nil
+	return pools, nil
 }
 
 // SetAutostart set autostart for domain.
 func (p *StoragePool) SetAutostart(autostart bool) error {
-	payload := struct {
-		Pool      StoragePool
-		Autostart int32
-	}{}
+	req := libvirt.RemoteStoragePoolSetAutostartReq{
+		Pool: &libvirt.RemoteStoragePool{
+			Name: p.Name,
+			UUID: p.UUID,
+		}}
 
-	payload.Pool = *p
 	if autostart {
-		payload.Autostart = 1
+		req.Autostart = 1
 	} else {
-		payload.Autostart = 0
+		req.Autostart = 0
 	}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return err
 	}
@@ -220,18 +181,17 @@ func (p *StoragePool) SetAutostart(autostart bool) error {
 }
 
 // StorageVolumeCreateXML creates a volume.
-func (p *StoragePool) StorageVolumeCreateXML(x []byte, flags StorageVolumeCreateFlags) (*StorageVolume, error) {
-	payload := struct {
-		Pool  StoragePool
-		XML   []byte
-		Flags StorageVolumeCreateFlags
-	}{
-		Pool:  *p,
-		XML:   x,
-		Flags: flags,
-	}
+func (p *StoragePool) StorageVolumeCreateXML(x string, flags StorageVolumeCreateFlags) (*StorageVolume, error) {
+	req := libvirt.RemoteStorageVolCreateXmlReq{
+		Pool: &libvirt.RemoteStoragePool{
+			Name: p.Name,
+			UUID: p.UUID,
+		},
+		Xml:   x,
+		Flags: uint32(flags)}
+	res := libvirt.RemoteStorageVolCreateXmlRes{}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return nil, err
 	}
@@ -246,31 +206,27 @@ func (p *StoragePool) StorageVolumeCreateXML(x []byte, flags StorageVolumeCreate
 		return nil, decodeError(r.Payload)
 	}
 
-	result := struct {
-		Volume StorageVolume
-	}{}
-
 	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
-	_, err = dec.Decode(&result)
+	_, err = dec.Decode(&res)
 	if err != nil {
 		return nil, err
 	}
-	result.Volume.l = p.l
 
-	return &result.Volume, nil
+	vol := &StorageVolume{RemoteStorageVolume: *res.Vol, l: p.l}
+	return vol, nil
 }
 
 // StorageVolumeLookupByName returns a volume as seen by libvirt.
 func (p *StoragePool) StorageVolumeLookupByName(name string) (*StorageVolume, error) {
-	payload := struct {
-		Pool StoragePool
-		Name string
-	}{
-		Pool: *p,
-		Name: name,
-	}
+	req := libvirt.RemoteStorageVolLookupByNameReq{
+		Pool: &libvirt.RemoteStoragePool{
+			Name: p.Name,
+			UUID: p.UUID,
+		},
+		Name: name}
+	res := libvirt.RemoteStorageVolLookupByNameRes{}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return nil, err
 	}
@@ -285,16 +241,12 @@ func (p *StoragePool) StorageVolumeLookupByName(name string) (*StorageVolume, er
 		return nil, decodeError(r.Payload)
 	}
 
-	result := struct {
-		Volume StorageVolume
-	}{}
-
 	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
-	_, err = dec.Decode(&result)
+	_, err = dec.Decode(&res)
 	if err != nil {
 		return nil, err
 	}
 
-	result.Volume.l = p.l
-	return &result.Volume, nil
+	vol := &StorageVolume{RemoteStorageVolume: *res.Vol, l: p.l}
+	return vol, nil
 }
