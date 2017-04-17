@@ -28,7 +28,7 @@ func main() {
 	}
 	fmt.Println("Version:", v)
 
-	domains, err := l.Domains()
+	domains, err := l.ListAllDomains()
 	if err != nil {
 		log.Fatalf("failed to retrieve domains: %v", err)
 	}

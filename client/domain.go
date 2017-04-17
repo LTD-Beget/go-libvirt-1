@@ -3,8 +3,6 @@ package client
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
-	"errors"
 	"net/url"
 	"strings"
 
@@ -14,230 +12,16 @@ import (
 
 // Domain represents a domain as seen by libvirt.
 type Domain struct {
-	libvirt.RemoteDomain
+	*libvirt.RemoteDomain
 	l *Libvirt
 }
 
-// qemuError represents a QEMU process error.
-type qemuError struct {
-	Error struct {
-		Class       string `json:"class"`
-		Description string `json:"desc"`
-	} `json:"error"`
-}
-
-// DomainBlockResizeFlags specifies options for block resize.
-type DomainBlockResizeFlags uint32
-
-const (
-	_ DomainBlockResizeFlags = iota
-	// DomainBlockResizeFlagBytes specify size in bytes for BlockResize
-	DomainBlockResizeFlagBytes
-)
-
-// DomainXMLFlags specifies options for dumping a domain's XML.
-type DomainXMLFlags uint32
-
-const (
-	// DomainXMLFlagSecure dumps XML with sensitive information included.
-	DomainXMLFlagSecure DomainXMLFlags = 1 << iota
-
-	// DomainXMLFlagInactive dumps XML with inactive domain information.
-	DomainXMLFlagInactive
-
-	// DomainXMLFlagUpdateCPU dumps XML with guest CPU requirements according to the host CPU.
-	DomainXMLFlagUpdateCPU
-
-	// DomainXMLFlagMigratable dumps XML suitable for migration.
-	DomainXMLFlagMigratable
-)
-
-// DomainCreateFlags specifies options when performing a domain creation.
-type DomainCreateFlags uint32
-
-const (
-	// DomainCreateFlagNone is the default behavior.
-	DomainCreateFlagNone DomainCreateFlags = 0
-
-	// DomainCreateFlagPaused creates paused domain.
-	DomainCreateFlagPaused DomainCreateFlags = 1 << (iota - 1)
-
-	// DomainCreateFlagAutoDestroy destoy domain after libvirt connection closed.
-	DomainCreateFlagAutoDestroy
-
-	// DomainCreateFlagBypassCache avoid file system cache pollution.
-	DomainCreateFlagBypassCache
-
-	// DomainCreateFlagStartForceBoot boot, discarding any managed save
-	DomainCreateFlagStartForceBoot
-
-	// DomainCreateFlagStartValidate validate the XML document against schema
-	DomainCreateFlagStartValidate
-)
-
-// DomainRebootFlags specifies options when performing a reboot.
-type DomainRebootFlags uint32
-
-const (
-	// DomainRebootFlagDefault use hypervisor choice.
-	DomainRebootFlagDefault DomainRebootFlags = 0
-
-	// DomainRebootFlagACPI send ACPI event.
-	DomainRebootFlagACPI DomainRebootFlags = 1 << (iota - 1)
-
-	// DomainRebootFlagGuestAgent use guest agent.
-	DomainRebootFlagGuestAgent
-
-	// DomainRebootFlagInitctl use initctl.
-	DomainRebootFlagInitctl
-
-	// DomainRebootFlagSignal send a signal.
-	DomainRebootFlagSignal
-
-	// DomainRebootFlagParavirt use paravirt guest control.
-	DomainRebootFlagParavirt
-)
-
-// DomainShutdownFlags specifies options when performing a shutdown.
-type DomainShutdownFlags uint32
-
-const (
-	// DomainShutdownFlagDefault use hypervisor choice.
-	DomainShutdownFlagDefault DomainShutdownFlags = 0
-
-	// DomainShutdownFlagACPI send ACPI event.
-	DomainShutdownFlagACPI DomainShutdownFlags = 1 << (iota - 1)
-
-	// DomainShutdownFlagGuestAgent use guest agent.
-	DomainShutdownFlagGuestAgent
-
-	// DomainShutdownFlagInitctl use initctl.
-	DomainShutdownFlagInitctl
-
-	// DomainShutdownFlagSignal send a signal.
-	DomainShutdownFlagSignal
-
-	// DomainShutdownFlagParavirt use paravirt guest control.
-	DomainShutdownFlagParavirt
-)
-
-// DomainMigrateFlags specifies options when performing a migration.
-type DomainMigrateFlags uint32
-
-const (
-	// DomainMigrateFlagLive performs a zero-downtime live migration.
-	DomainMigrateFlagLive DomainMigrateFlags = 1 << iota
-
-	// DomainMigrateFlagPeerToPeer creates a direct source to destination control channel.
-	DomainMigrateFlagPeerToPeer
-
-	// DomainMigrateFlagTunneled tunnels migration data over the libvirtd connection.
-	DomainMigrateFlagTunneled
-
-	// DomainMigrateFlagPersistDestination will persist the VM on the destination host.
-	DomainMigrateFlagPersistDestination
-
-	// DomainMigrateFlagUndefineSource undefines the VM on the source host.
-	DomainMigrateFlagUndefineSource
-
-	// DomainMigrateFlagPaused will pause the remote side VM.
-	DomainMigrateFlagPaused
-
-	// DomainMigrateFlagNonSharedDisk migrate non-shared storage with full disk copy.
-	DomainMigrateFlagNonSharedDisk
-
-	// DomainMigrateFlagNonSharedIncremental migrate non-shared storage with incremental copy.
-	DomainMigrateFlagNonSharedIncremental
-
-	// DomainMigrateFlagChangeProtection prevents any changes to the domain configuration through the whole migration process.
-	DomainMigrateFlagChangeProtection
-
-	// DomainMigrateFlagUnsafe will force a migration even when it is considered unsafe.
-	DomainMigrateFlagUnsafe
-
-	// DomainMigrateFlagOffline is used to perform an offline migration.
-	DomainMigrateFlagOffline
-
-	// DomainMigrateFlagCompressed compresses data during migration.
-	DomainMigrateFlagCompressed
-
-	// DomainMigrateFlagAbortOnError will abort a migration on I/O errors encountered during migration.
-	DomainMigrateFlagAbortOnError
-
-	// DomainMigrateFlagAutoConverge forces convergence.
-	DomainMigrateFlagAutoConverge
-
-	// DomainMigrateFlagRDMAPinAll enables RDMA memory pinning.
-	DomainMigrateFlagRDMAPinAll
-)
-
-// DomainUndefineFlags specifies options available when undefining a domain.
-type DomainUndefineFlags uint32
-
-const (
-	// DomainUndefineFlagManagedSave removes all domain managed save data.
-	DomainUndefineFlagManagedSave DomainUndefineFlags = 1 << iota
-
-	// DomainUndefineFlagSnapshotsMetadata removes all domain snapshot metadata.
-	DomainUndefineFlagSnapshotsMetadata
-
-	// DomainUndefineFlagNVRAM removes all domain NVRAM files.
-	DomainUndefineFlagNVRAM
-)
-
-// DomainDefineXMLFlags specifies options available when defining a domain.
-type DomainDefineXMLFlags uint32
-
-const (
-	// DefineValidate validates the XML document against schema
-	DefineValidate DomainDefineXMLFlags = 1
-)
-
-// DomainDestroyFlags specifies options available when destroying a domain.
-type DomainDestroyFlags uint32
-
-const (
-	// DestroyFlagDefault default behavior, forcefully terminate the domain.
-	DestroyFlagDefault DomainDestroyFlags = 1 << iota
-
-	// DestroyFlagGraceful only sends a SIGTERM no SIGKILL.
-	DestroyFlagGraceful
-)
-
-// DomainState specifies state of the domain
-type DomainState uint32
-
-const (
-	// DomainStateNoState No state
-	DomainStateNoState = iota
-	// DomainStateRunning The domain is running
-	DomainStateRunning
-	// DomainStateBlocked The domain is blocked on resource
-	DomainStateBlocked
-	// DomainStatePaused The domain is paused by user
-	DomainStatePaused
-	// DomainStateShutdown The domain is being shut down
-	DomainStateShutdown
-	// DomainStateShutoff The domain is shut off
-	DomainStateShutoff
-	// DomainStateCrashed The domain is crashed
-	DomainStateCrashed
-	// DomainStatePMSuspended The domain is suspended by guest power management
-	DomainStatePMSuspended
-	// DomainStateLast This value will increase over time as new events are added to the libvirt
-	// API. It reflects the last state supported by this version of the libvirt API.
-	DomainStateLast
-)
-
 // Domains returns a list of all domains managed by libvirt.
-func (l *Libvirt) Domains() ([]Domain, error) {
-	req := struct {
-		NeedResults uint32
-		Flags       uint32
-	}{
+func (l *Libvirt) ListAllDomains() ([]*Domain, error) {
+	req := libvirt.RemoteConnectListAllDomainsReq{
 		NeedResults: 1,
-		Flags:       3,
-	}
+		Flags:       3}
+	res := libvirt.RemoteConnectListAllDomainsRes{}
 
 	buf, err := encode(&req)
 	if err != nil {
@@ -254,70 +38,48 @@ func (l *Libvirt) Domains() ([]Domain, error) {
 		return nil, decodeError(r.Payload)
 	}
 
-	result := struct {
-		Domains []Domain
-		Count   uint32
-	}{}
-
 	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
-	_, err = dec.Decode(&result)
+	_, err = dec.Decode(&res)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, d := range result.Domains {
-		d.l = l
+	var domains []*Domain
+	for _, d := range res.Domains {
+		domains = append(domains, &Domain{RemoteDomain: d, l: l})
 	}
-	return result.Domains, nil
-}
-
-// LookupDomainByName return Domain by its name.
-func (l *Libvirt) LookupDomainByName(name string) (*Domain, error) {
-	return l.lookupByName(name)
-}
-
-// LookupDomainByUUID return Domain by its uuid.
-func (l *Libvirt) LookupDomainByUUID(uuid string) (*Domain, error) {
-	return l.lookupByUUID(uuid)
+	return domains, nil
 }
 
 // State returns state of the domain managed by libvirt.
-func (d *Domain) State() (DomainState, error) {
-	req := struct {
-		Domain Domain
-		Flags  uint32
-	}{
-		Domain: *d,
-		Flags:  0,
-	}
+func (d *Domain) State() (libvirt.DomainState, error) {
+	req := libvirt.RemoteDomainGetStateReq{
+		Domain: d.RemoteDomain,
+		Flags:  0}
+	res := libvirt.RemoteDomainGetStateRes{}
 
 	buf, err := encode(&req)
 	if err != nil {
-		return DomainStateNoState, err
+		return libvirt.DomainStateNoState, err
 	}
 
 	resp, err := d.l.send(libvirt.RemoteProcDomainGetState, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
 	if err != nil {
-		return DomainStateNoState, err
+		return libvirt.DomainStateNoState, err
 	}
 
 	r := <-resp
 	if r.Header.Status != libvirt.MessageStatusOK {
-		return DomainStateNoState, decodeError(r.Payload)
+		return libvirt.DomainStateNoState, decodeError(r.Payload)
 	}
-
-	result := struct {
-		State  uint32
-		Reason uint32
-	}{}
 
 	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
-	_, err = dec.Decode(&result)
+	_, err = dec.Decode(&res)
 	if err != nil {
-		return DomainStateNoState, err
+		return libvirt.DomainStateNoState, err
 	}
 
-	return DomainState(result.State), nil
+	return libvirt.DomainState(res.State), nil
 }
 
 // Migrate synchronously migrates the domain specified by dom, e.g.,
@@ -325,33 +87,20 @@ func (d *Domain) State() (DomainState, error) {
 // 'qemu+tcp://example.com/system'. The flags argument determines the
 // type of migration and how it will be performed. For more information
 // on available migration flags and their meaning, see MigrateFlag*.
-func (d *Domain) Migrate(dest string, flags DomainMigrateFlags) error {
-	_, err := url.Parse(dest)
+func (d *Domain) Migrate(dst string, x string, flags libvirt.DomainMigrateFlags) error {
+	_, err := url.Parse(dst)
 	if err != nil {
 		return err
 	}
 
-	// Two unknowns remain here , Libvirt specifies RemoteParameters
-	// and CookieIn. In testing both values are always set to 0 by virsh
-	// and the source does not provide clear definitions of their purpose.
-	// For now, using the same zero'd values as done by virsh will be Good Enough.
-	payload := struct {
-		Domain           Domain
-		Padding          [4]byte
-		DestinationURI   string
-		RemoteParameters uint32
-		CookieIn         uint32
-		Flags            DomainMigrateFlags
-	}{
-		Domain:           *d,
-		Padding:          [4]byte{0x0, 0x0, 0x0, 0x1},
-		DestinationURI:   dest,
-		RemoteParameters: 0,
-		CookieIn:         0,
-		Flags:            flags,
+	req := libvirt.RemoteDomainMigratePerform3Req{
+		Domain: d.RemoteDomain,
+		Xmlin:  x,
+		Uri:    dst,
+		Flags:  uint64(flags),
 	}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return err
 	}
@@ -370,18 +119,13 @@ func (d *Domain) Migrate(dest string, flags DomainMigrateFlags) error {
 }
 
 // BlockResize reesize a block device of domain while the domain is running.
-func (d *Domain) BlockResize(disk string, size uint64, flags DomainBlockResizeFlags) error {
-	payload := struct {
-		Domain Domain
-		Size   uint64
-		Flags  DomainBlockResizeFlags
-	}{
-		Domain: *d,
+func (d *Domain) BlockResize(disk string, size uint64, flags libvirt.DomainBlockResizeFlags) error {
+	req := libvirt.RemoteDomainBlockResizeReq{
+		Domain: d.RemoteDomain,
 		Size:   size,
-		Flags:  flags,
-	}
+		Flags:  uint32(flags)}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return err
 	}
@@ -402,19 +146,13 @@ func (d *Domain) BlockResize(disk string, size uint64, flags DomainBlockResizeFl
 // MigrateSetMaxSpeed set the maximum migration bandwidth (in MiB/s) for a
 // domain which is being migrated to another host. Specifying a negative value
 // results in an essentially unlimited value being provided to the hypervisor.
-func (d *Domain) MigrateSetMaxSpeed(speed int64) error {
-	payload := struct {
-		Padding   [4]byte
-		Domain    Domain
-		Bandwidth int64
-		Flags     uint32
-	}{
-		Padding:   [4]byte{0x0, 0x0, 0x1, 0x0},
-		Domain:    *d,
-		Bandwidth: speed,
-	}
+func (d *Domain) MigrateSetMaxSpeed(bandwidth uint64, flags uint32) error {
+	req := libvirt.RemoteDomainMigrateSetMaxSpeedReq{
+		Domain:    d.RemoteDomain,
+		Bandwidth: bandwidth,
+		Flags:     uint32(flags)}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return err
 	}
@@ -432,20 +170,43 @@ func (d *Domain) MigrateSetMaxSpeed(speed int64) error {
 	return nil
 }
 
+// MigrateSetMaxDowntime set the maximum downtime for a
+// domain which is being migrated to another host. Specifying a negative value
+// results in an essentially unlimited value being provided to the hypervisor.
+func (d *Domain) MigrateSetMaxDowntime(downtime uint64, flags uint32) error {
+	req := libvirt.RemoteDomainMigrateSetMaxDowntimeReq{
+		Domain:   d.RemoteDomain,
+		Downtime: downtime,
+		Flags:    uint32(flags)}
+
+	buf, err := encode(&req)
+	if err != nil {
+		return err
+	}
+
+	resp, err := d.l.send(libvirt.RemoteProcDomainMigrateSetMaxDowntime, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
+	if err != nil {
+		return err
+	}
+
+	r := <-resp
+	if r.Header.Status != libvirt.MessageStatusOK {
+		return decodeError(r.Payload)
+	}
+
+	return nil
+}
+
 // Undefine undefines the domain.
 // The flags argument allows additional options to be specified such as
 // cleaning up snapshot metadata. For more information on available
 // flags, see DomainUndefineFlag*.
-func (d *Domain) Undefine(flags DomainUndefineFlags) error {
-	payload := struct {
-		Domain Domain
-		Flags  DomainUndefineFlags
-	}{
-		Domain: *d,
-		Flags:  flags,
-	}
+func (d *Domain) Undefine(flags libvirt.DomainUndefineFlags) error {
+	req := libvirt.RemoteDomainUndefineFlagsReq{
+		Domain: d.RemoteDomain,
+		Flags:  uint32(flags)}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return err
 	}
@@ -465,13 +226,9 @@ func (d *Domain) Undefine(flags DomainUndefineFlags) error {
 
 // Suspend suspends the domain.
 func (d *Domain) Suspend() error {
-	payload := struct {
-		Domain Domain
-	}{
-		Domain: *d,
-	}
+	req := libvirt.RemoteDomainSuspendReq{Domain: d.RemoteDomain}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return err
 	}
@@ -491,13 +248,9 @@ func (d *Domain) Suspend() error {
 
 // Resume resume domain.
 func (d *Domain) Resume() error {
-	payload := struct {
-		Domain Domain
-	}{
-		Domain: *d,
-	}
+	req := libvirt.RemoteDomainResumeReq{Domain: d.RemoteDomain}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return err
 	}
@@ -517,19 +270,15 @@ func (d *Domain) Resume() error {
 
 // SetAutostart set autostart for domain.
 func (d *Domain) SetAutostart(autostart bool) error {
-	payload := struct {
-		Domain    Domain
-		Autostart int32
-	}{}
+	req := libvirt.RemoteDomainSetAutostartReq{Domain: d.RemoteDomain}
 
-	payload.Domain = *d
 	if autostart {
-		payload.Autostart = 1
+		req.Autostart = 1
 	} else {
-		payload.Autostart = 0
+		req.Autostart = 0
 	}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return err
 	}
@@ -551,16 +300,10 @@ func (d *Domain) SetAutostart(autostart bool) error {
 // The flags argument allows additional options to be specified such as
 // allowing a graceful shutdown with SIGTERM than SIGKILL.
 // For more information on available flags, see DomainDestroyFlag*.
-func (d *Domain) Destroy(flags DomainDestroyFlags) error {
-	payload := struct {
-		Domain Domain
-		Flags  DomainDestroyFlags
-	}{
-		Domain: *d,
-		Flags:  flags,
-	}
+func (d *Domain) Destroy(flags libvirt.DomainDestroyFlags) error {
+	req := libvirt.RemoteDomainDestroyFlagsReq{Domain: d.RemoteDomain, Flags: uint32(flags)}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return err
 	}
@@ -581,16 +324,10 @@ func (d *Domain) Destroy(flags DomainDestroyFlags) error {
 // Reboot reboot the domain.
 // The flags argument allows additional options to be specified.
 // For more information on available flags, see DomainRebootFlags*.
-func (d *Domain) Reboot(flags DomainRebootFlags) error {
-	payload := struct {
-		Domain Domain
-		Flags  DomainRebootFlags
-	}{
-		Domain: *d,
-		Flags:  flags,
-	}
+func (d *Domain) Reboot(flags libvirt.DomainRebootFlags) error {
+	req := libvirt.RemoteDomainRebootReq{Domain: d.RemoteDomain, Flags: uint32(flags)}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return err
 	}
@@ -611,16 +348,10 @@ func (d *Domain) Reboot(flags DomainRebootFlags) error {
 // Shutdown reboot the domain.
 // The flags argument allows additional options to be specified.
 // For more information on available flags, see DomainShutdownFlags*.
-func (d *Domain) Shutdown(flags DomainShutdownFlags) error {
-	payload := struct {
-		Domain Domain
-		Flags  DomainShutdownFlags
-	}{
-		Domain: *d,
-		Flags:  flags,
-	}
+func (d *Domain) Shutdown(flags libvirt.DomainShutdownFlags) error {
+	req := libvirt.RemoteDomainShutdownFlagsReq{Domain: d.RemoteDomain, Flags: uint32(flags)}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return err
 	}
@@ -640,51 +371,39 @@ func (d *Domain) Shutdown(flags DomainShutdownFlags) error {
 
 // XML returns a domain's raw XML definition, akin to `virsh dumpxml <domain>`.
 // See DomainXMLFlag* for optional flags.
-func (d *Domain) XML(flags DomainXMLFlags) ([]byte, error) {
-	payload := struct {
-		Domain Domain
-		Flags  DomainXMLFlags
-	}{
-		Domain: *d,
-		Flags:  flags,
-	}
+func (d *Domain) XML(flags libvirt.DomainXMLFlags) (string, error) {
+	req := libvirt.RemoteDomainGetXmlDescReq{Domain: d.RemoteDomain, Flags: uint32(flags)}
+	res := libvirt.RemoteDomainGetXmlDescRes{}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	resp, err := d.l.send(libvirt.RemoteProcDomainGetXmlDesc, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	r := <-resp
 	if r.Header.Status != libvirt.MessageStatusOK {
-		return nil, decodeError(r.Payload)
+		return "", decodeError(r.Payload)
 	}
 
-	pl := bytes.NewReader(r.Payload)
-	dec := xdr.NewDecoder(pl)
-	s, _, err := dec.DecodeString()
+	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
+	_, err = dec.Decode(&res)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return []byte(s), nil
+	return res.Xml, nil
 }
 
 // DefineXML defines a domain, but does not start it.
-func (l *Libvirt) DefineXML(x []byte, flags DomainDefineXMLFlags) error {
-	payload := struct {
-		XML   []byte
-		Flags DomainDefineXMLFlags
-	}{
-		XML:   x,
-		Flags: flags,
-	}
+func (l *Libvirt) DomainDefineXML(x string, flags libvirt.DomainDefineXMLFlags) error {
+	req := libvirt.RemoteDomainDefineXmlFlagsReq{Xml: x, Flags: uint32(flags)}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return err
 	}
@@ -704,13 +423,9 @@ func (l *Libvirt) DefineXML(x []byte, flags DomainDefineXMLFlags) error {
 
 // Create start defined domain.
 func (d *Domain) Create() error {
-	payload := struct {
-		Domain Domain
-	}{
-		Domain: *d,
-	}
+	req := libvirt.RemoteDomainCreateReq{Domain: d.RemoteDomain}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return err
 	}
@@ -729,16 +444,10 @@ func (d *Domain) Create() error {
 }
 
 // DomainCreateXML start domain based on xml.
-func (l *Libvirt) DomainCreateXML(x []byte, flags DomainCreateFlags) error {
-	payload := struct {
-		XML   []byte
-		Flags DomainCreateFlags
-	}{
-		XML:   x,
-		Flags: flags,
-	}
+func (l *Libvirt) DomainCreateXML(x string, flags libvirt.DomainCreateFlags) error {
+	req := libvirt.RemoteDomainCreateXmlReq{XML: x, Flags: uint32(flags)}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return err
 	}
@@ -756,13 +465,12 @@ func (l *Libvirt) DomainCreateXML(x []byte, flags DomainCreateFlags) error {
 	return nil
 }
 
-// lookupByName returns a domain as seen by libvirt.
-func (l *Libvirt) lookupByName(name string) (*Domain, error) {
-	payload := struct {
-		Name string
-	}{name}
+// DomainLookupByName returns a domain as seen by libvirt.
+func (l *Libvirt) DomainLookupByName(name string) (*Domain, error) {
+	req := libvirt.RemoteDomainLookupByNameReq{Name: name}
+	res := libvirt.RemoteDomainLookupByNameRes{}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return nil, err
 	}
@@ -779,27 +487,25 @@ func (l *Libvirt) lookupByName(name string) (*Domain, error) {
 
 	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
 
-	var d Domain
-	_, err = dec.Decode(&d)
+	_, err = dec.Decode(&res)
 	if err != nil {
 		return nil, err
 	}
 
-	d.l = l
-	return &d, nil
+	return &Domain{RemoteDomain: res.Domain, l: l}, nil
 }
 
-// lookupByUUID returns a domain as seen by libvirt.
-func (l *Libvirt) lookupByUUID(uuid string) (*Domain, error) {
-	payload := struct {
-		UUID libvirt.UUID
-	}{}
-	_, err := hex.Decode(payload.UUID[:], []byte(strings.Replace(uuid, "-", "", -1)))
+// DomainLookupByUUID returns a domain as seen by libvirt.
+func (l *Libvirt) DomainLookupByUUID(uuid string) (*Domain, error) {
+	req := libvirt.RemoteDomainLookupByUuidReq{}
+	res := libvirt.RemoteDomainLookupByUuidRes{}
+
+	_, err := hex.Decode(req.UUID[:], []byte(strings.Replace(uuid, "-", "", -1)))
 	if err != nil {
 		return nil, err
 	}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return nil, err
 	}
@@ -816,35 +522,10 @@ func (l *Libvirt) lookupByUUID(uuid string) (*Domain, error) {
 
 	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
 
-	var d Domain
-	_, err = dec.Decode(&d)
+	_, err = dec.Decode(&res)
 	if err != nil {
 		return nil, err
 	}
 
-	d.l = l
-	return &d, nil
-}
-
-// getQEMUError checks the provided response for QEMU process errors.
-// If an error is found, it is extracted an returned, otherwise nil.
-func getQEMUError(r Message) error {
-	pl := bytes.NewReader(r.Payload)
-	dec := xdr.NewDecoder(pl)
-
-	s, _, err := dec.DecodeString()
-	if err != nil {
-		return err
-	}
-
-	var e qemuError
-	if err = json.Unmarshal([]byte(s), &e); err != nil {
-		return err
-	}
-
-	if e.Error.Description != "" {
-		return errors.New(e.Error.Description)
-	}
-
-	return nil
+	return &Domain{RemoteDomain: res.Domain, l: l}, nil
 }

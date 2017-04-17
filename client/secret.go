@@ -15,7 +15,9 @@ type Secret struct {
 
 // Secrets returns all secrets managed by the libvirt daemon.
 func (l *Libvirt) Secrets() ([]*Secret, error) {
-	req := libvirt.RemoteConnectListAllSecretsReq{NeedResults: 1, Flags: 0}
+	req := libvirt.RemoteConnectListAllSecretsReq{
+		NeedResults: 1,
+		Flags:       0}
 	res := libvirt.RemoteConnectListAllSecretsRes{}
 
 	buf, err := encode(&req)
