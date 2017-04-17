@@ -8,6 +8,7 @@ import "fmt"
 //go:generate stringer -type=StoragePoolsFlags -output storagepool_string.go
 //go:generate stringer -type=StorageVolumeDownloadFlags,StorageVolumeUploadFlags,StorageVolumeCreateFlags,StorageVolumeDeleteFlags,StorageVolumeResizeFlags -output storagevolume_string.go
 //go:generate stringer -type=DomainSnapshotCreateFlags,DomainSnapshotDeleteFlags,DomainSnapshotListFlags,DomainSnapshotRevertFlags -output domainsnapshot_string.go
+//go:generate stringer -type=DomainBlockResizeFlags,DomainXMLFlags,DomainCreateFlags,DomainRebootFlags,DomainShutdownFlags,DomainMigrateFlags,DomainUndefineFlags,DomainDefineXMLFlags,DomainDestroyFlags -output domain_string.go
 
 type UUID [16]byte
 
@@ -257,6 +258,209 @@ const (
 
 	// DomainSnapshotRevertFlagForce allow risky reverts.
 	DomainSnapshotRevertFlagForce
+)
+
+// DomainBlockResizeFlags specifies options for block resize.
+type DomainBlockResizeFlags uint32
+
+const (
+	DomainBlockResizeFlagNone DomainBlockResizeFlags = iota
+	// DomainBlockResizeFlagBytes specify size in bytes for BlockResize
+	DomainBlockResizeFlagBytes
+)
+
+// DomainXMLFlags specifies options for dumping a domain's XML.
+type DomainXMLFlags uint32
+
+const (
+	// DomainXMLFlagSecure dumps XML with sensitive information included.
+	DomainXMLFlagSecure DomainXMLFlags = 1 << iota
+
+	// DomainXMLFlagInactive dumps XML with inactive domain information.
+	DomainXMLFlagInactive
+
+	// DomainXMLFlagUpdateCPU dumps XML with guest CPU requirements according to the host CPU.
+	DomainXMLFlagUpdateCPU
+
+	// DomainXMLFlagMigratable dumps XML suitable for migration.
+	DomainXMLFlagMigratable
+)
+
+// DomainCreateFlags specifies options when performing a domain creation.
+type DomainCreateFlags uint32
+
+const (
+	// DomainCreateFlagNone is the default behavior.
+	DomainCreateFlagNone DomainCreateFlags = 0
+
+	// DomainCreateFlagPaused creates paused domain.
+	DomainCreateFlagPaused DomainCreateFlags = 1 << (iota - 1)
+
+	// DomainCreateFlagAutoDestroy destoy domain after libvirt connection closed.
+	DomainCreateFlagAutoDestroy
+
+	// DomainCreateFlagBypassCache avoid file system cache pollution.
+	DomainCreateFlagBypassCache
+
+	// DomainCreateFlagStartForceBoot boot, discarding any managed save
+	DomainCreateFlagStartForceBoot
+
+	// DomainCreateFlagStartValidate validate the XML document against schema
+	DomainCreateFlagStartValidate
+)
+
+// DomainRebootFlags specifies options when performing a reboot.
+type DomainRebootFlags uint32
+
+const (
+	// DomainRebootFlagDefault use hypervisor choice.
+	DomainRebootFlagDefault DomainRebootFlags = 0
+
+	// DomainRebootFlagACPI send ACPI event.
+	DomainRebootFlagACPI DomainRebootFlags = 1 << (iota - 1)
+
+	// DomainRebootFlagGuestAgent use guest agent.
+	DomainRebootFlagGuestAgent
+
+	// DomainRebootFlagInitctl use initctl.
+	DomainRebootFlagInitctl
+
+	// DomainRebootFlagSignal send a signal.
+	DomainRebootFlagSignal
+
+	// DomainRebootFlagParavirt use paravirt guest control.
+	DomainRebootFlagParavirt
+)
+
+// DomainShutdownFlags specifies options when performing a shutdown.
+type DomainShutdownFlags uint32
+
+const (
+	// DomainShutdownFlagDefault use hypervisor choice.
+	DomainShutdownFlagDefault DomainShutdownFlags = 0
+
+	// DomainShutdownFlagACPI send ACPI event.
+	DomainShutdownFlagACPI DomainShutdownFlags = 1 << (iota - 1)
+
+	// DomainShutdownFlagGuestAgent use guest agent.
+	DomainShutdownFlagGuestAgent
+
+	// DomainShutdownFlagInitctl use initctl.
+	DomainShutdownFlagInitctl
+
+	// DomainShutdownFlagSignal send a signal.
+	DomainShutdownFlagSignal
+
+	// DomainShutdownFlagParavirt use paravirt guest control.
+	DomainShutdownFlagParavirt
+)
+
+// DomainMigrateFlags specifies options when performing a migration.
+type DomainMigrateFlags uint64
+
+const (
+	// DomainMigrateFlagLive performs a zero-downtime live migration.
+	DomainMigrateFlagLive DomainMigrateFlags = 1 << iota
+
+	// DomainMigrateFlagPeerToPeer creates a direct source to destination control channel.
+	DomainMigrateFlagPeerToPeer
+
+	// DomainMigrateFlagTunneled tunnels migration data over the libvirtd connection.
+	DomainMigrateFlagTunneled
+
+	// DomainMigrateFlagPersistDestination will persist the VM on the destination host.
+	DomainMigrateFlagPersistDestination
+
+	// DomainMigrateFlagUndefineSource undefines the VM on the source host.
+	DomainMigrateFlagUndefineSource
+
+	// DomainMigrateFlagPaused will pause the remote side VM.
+	DomainMigrateFlagPaused
+
+	// DomainMigrateFlagNonSharedDisk migrate non-shared storage with full disk copy.
+	DomainMigrateFlagNonSharedDisk
+
+	// DomainMigrateFlagNonSharedIncremental migrate non-shared storage with incremental copy.
+	DomainMigrateFlagNonSharedIncremental
+
+	// DomainMigrateFlagChangeProtection prevents any changes to the domain configuration through the whole migration process.
+	DomainMigrateFlagChangeProtection
+
+	// DomainMigrateFlagUnsafe will force a migration even when it is considered unsafe.
+	DomainMigrateFlagUnsafe
+
+	// DomainMigrateFlagOffline is used to perform an offline migration.
+	DomainMigrateFlagOffline
+
+	// DomainMigrateFlagCompressed compresses data during migration.
+	DomainMigrateFlagCompressed
+
+	// DomainMigrateFlagAbortOnError will abort a migration on I/O errors encountered during migration.
+	DomainMigrateFlagAbortOnError
+
+	// DomainMigrateFlagAutoConverge forces convergence.
+	DomainMigrateFlagAutoConverge
+
+	// DomainMigrateFlagRDMAPinAll enables RDMA memory pinning.
+	DomainMigrateFlagRDMAPinAll
+)
+
+// DomainUndefineFlags specifies options available when undefining a domain.
+type DomainUndefineFlags uint32
+
+const (
+	// DomainUndefineFlagManagedSave removes all domain managed save data.
+	DomainUndefineFlagManagedSave DomainUndefineFlags = 1 << iota
+
+	// DomainUndefineFlagSnapshotsMetadata removes all domain snapshot metadata.
+	DomainUndefineFlagSnapshotsMetadata
+
+	// DomainUndefineFlagNVRAM removes all domain NVRAM files.
+	DomainUndefineFlagNVRAM
+)
+
+// DomainDefineXMLFlags specifies options available when defining a domain.
+type DomainDefineXMLFlags uint32
+
+const (
+	// DefineValidate validates the XML document against schema
+	DefineValidate DomainDefineXMLFlags = 1
+)
+
+// DomainDestroyFlags specifies options available when destroying a domain.
+type DomainDestroyFlags uint32
+
+const (
+	// DestroyFlagDefault default behavior, forcefully terminate the domain.
+	DestroyFlagDefault DomainDestroyFlags = 1 << iota
+
+	// DestroyFlagGraceful only sends a SIGTERM no SIGKILL.
+	DestroyFlagGraceful
+)
+
+// DomainState specifies state of the domain
+type DomainState uint32
+
+const (
+	// DomainStateNoState No state
+	DomainStateNoState = iota
+	// DomainStateRunning The domain is running
+	DomainStateRunning
+	// DomainStateBlocked The domain is blocked on resource
+	DomainStateBlocked
+	// DomainStatePaused The domain is paused by user
+	DomainStatePaused
+	// DomainStateShutdown The domain is being shut down
+	DomainStateShutdown
+	// DomainStateShutoff The domain is shut off
+	DomainStateShutoff
+	// DomainStateCrashed The domain is crashed
+	DomainStateCrashed
+	// DomainStatePMSuspended The domain is suspended by guest power management
+	DomainStatePMSuspended
+	// DomainStateLast This value will increase over time as new events are added to the libvirt
+	// API. It reflects the last state supported by this version of the libvirt API.
+	DomainStateLast
 )
 
 const (

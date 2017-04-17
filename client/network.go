@@ -9,18 +9,15 @@ import (
 
 // Network represents a network as seen by libvirt.
 type Network struct {
-	libvirt.RemoteNetwork
+	*libvirt.RemoteNetwork
 	l *Libvirt
 }
 
 // NetworkLookupByName returns the network associated with the provided name.
 // An error is returned if the requested network is not found.
 func (l *Libvirt) NetworkLookupByName(name string) (*Network, error) {
-	req := struct {
-		Name string
-	}{
-		Name: name,
-	}
+	req := libvirt.RemoteNetworkLookupByNameReq{Name: name}
+	res := libvirt.RemoteNetworkLookupByNameRes{}
 
 	buf, err := encode(&req)
 	if err != nil {
@@ -37,35 +34,25 @@ func (l *Libvirt) NetworkLookupByName(name string) (*Network, error) {
 		return nil, decodeError(r.Payload)
 	}
 
-	result := struct {
-		Net Network
-	}{}
-
 	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
-	_, err = dec.Decode(&result)
+	_, err = dec.Decode(&res)
 	if err != nil {
 		return nil, err
 	}
 
-	result.Net.l = l
-	return &result.Net, nil
+	return &Network{RemoteNetwork: res.Network, l: l}, nil
 }
 
 // SetAutostart set autostart for network.
 func (n *Network) SetAutostart(autostart bool) error {
-	payload := struct {
-		Network   Network
-		Autostart int32
-	}{}
-
-	payload.Network = *n
+	req := libvirt.RemoteNetworkSetAutostartReq{Network: n.RemoteNetwork}
 	if autostart {
-		payload.Autostart = 1
+		req.Autostart = 1
 	} else {
-		payload.Autostart = 0
+		req.Autostart = 0
 	}
 
-	buf, err := encode(&payload)
+	buf, err := encode(&req)
 	if err != nil {
 		return err
 	}

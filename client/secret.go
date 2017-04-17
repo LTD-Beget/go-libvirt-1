@@ -9,7 +9,7 @@ import (
 
 // Secret represents a secret managed by the libvirt daemon.
 type Secret struct {
-	libvirt.RemoteSecret
+	*libvirt.RemoteSecret
 	l *Libvirt
 }
 
@@ -43,7 +43,7 @@ func (l *Libvirt) Secrets() ([]*Secret, error) {
 
 	var secrets []*Secret
 	for _, secret := range res.Secrets {
-		secrets = append(secrets, &Secret{l: l, RemoteSecret: *secret})
+		secrets = append(secrets, &Secret{l: l, RemoteSecret: secret})
 	}
 	return secrets, nil
 }

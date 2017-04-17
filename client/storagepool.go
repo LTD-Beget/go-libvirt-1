@@ -11,7 +11,7 @@ import (
 
 // StoragePool represents a storage pool as seen by libvirt.
 type StoragePool struct {
-	libvirt.RemoteStoragePool
+	*libvirt.RemoteStoragePool
 	l *Libvirt
 }
 
@@ -42,7 +42,7 @@ func (l *Libvirt) StoragePoolLookupByName(name string) (*StoragePool, error) {
 		return nil, err
 	}
 
-	pool := &StoragePool{RemoteStoragePool: *res.Pool, l: l}
+	pool := &StoragePool{RemoteStoragePool: res.Pool, l: l}
 	return pool, nil
 }
 
@@ -72,29 +72,19 @@ func (l *Libvirt) StoragePoolLookupByUUID(uuid string) (*StoragePool, error) {
 		return nil, decodeError(r.Payload)
 	}
 
-	result := struct {
-		Pool StoragePool
-	}{}
-
 	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
-	_, err = dec.Decode(&result)
+	_, err = dec.Decode(&res)
 	if err != nil {
 		return nil, err
 	}
 
-	pool := &StoragePool{RemoteStoragePool: *res.Pool, l: l}
+	pool := &StoragePool{RemoteStoragePool: res.Pool, l: l}
 	return pool, nil
 }
 
 // Refresh refreshes the storage pool.
 func (p *StoragePool) Refresh(flags uint32) error {
-	req := struct {
-		Pool  StoragePool
-		Flags uint32
-	}{
-		Pool:  *p,
-		Flags: flags, // unused per libvirt source, callers should pass 0
-	}
+	req := libvirt.RemoteStoragePoolRefreshReq{Pool: p.RemoteStoragePool, Flags: uint32(flags)}
 
 	buf, err := encode(&req)
 	if err != nil {
@@ -143,18 +133,14 @@ func (l *Libvirt) StoragePools(flags libvirt.StoragePoolsFlags) ([]*StoragePool,
 
 	var pools []*StoragePool
 	for _, pool := range res.Pools {
-		pools = append(pools, &StoragePool{RemoteStoragePool: *pool, l: l})
+		pools = append(pools, &StoragePool{RemoteStoragePool: pool, l: l})
 	}
 	return pools, nil
 }
 
 // SetAutostart set autostart for domain.
 func (p *StoragePool) SetAutostart(autostart bool) error {
-	req := libvirt.RemoteStoragePoolSetAutostartReq{
-		Pool: &libvirt.RemoteStoragePool{
-			Name: p.Name,
-			UUID: p.UUID,
-		}}
+	req := libvirt.RemoteStoragePoolSetAutostartReq{Pool: p.RemoteStoragePool}
 
 	if autostart {
 		req.Autostart = 1
@@ -183,10 +169,7 @@ func (p *StoragePool) SetAutostart(autostart bool) error {
 // StorageVolumeCreateXML creates a volume.
 func (p *StoragePool) StorageVolumeCreateXML(x string, flags libvirt.StorageVolumeCreateFlags) (*StorageVolume, error) {
 	req := libvirt.RemoteStorageVolCreateXmlReq{
-		Pool: &libvirt.RemoteStoragePool{
-			Name: p.Name,
-			UUID: p.UUID,
-		},
+		Pool:  p.RemoteStoragePool,
 		Xml:   x,
 		Flags: uint32(flags)}
 	res := libvirt.RemoteStorageVolCreateXmlRes{}
@@ -212,17 +195,14 @@ func (p *StoragePool) StorageVolumeCreateXML(x string, flags libvirt.StorageVolu
 		return nil, err
 	}
 
-	vol := &StorageVolume{RemoteStorageVolume: *res.Vol, l: p.l}
+	vol := &StorageVolume{RemoteStorageVolume: res.Vol, l: p.l}
 	return vol, nil
 }
 
 // StorageVolumeLookupByName returns a volume as seen by libvirt.
 func (p *StoragePool) StorageVolumeLookupByName(name string) (*StorageVolume, error) {
 	req := libvirt.RemoteStorageVolLookupByNameReq{
-		Pool: &libvirt.RemoteStoragePool{
-			Name: p.Name,
-			UUID: p.UUID,
-		},
+		Pool: p.RemoteStoragePool,
 		Name: name}
 	res := libvirt.RemoteStorageVolLookupByNameRes{}
 
@@ -247,6 +227,6 @@ func (p *StoragePool) StorageVolumeLookupByName(name string) (*StorageVolume, er
 		return nil, err
 	}
 
-	vol := &StorageVolume{RemoteStorageVolume: *res.Vol, l: p.l}
+	vol := &StorageVolume{RemoteStorageVolume: res.Vol, l: p.l}
 	return vol, nil
 }

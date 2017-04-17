@@ -4,18 +4,14 @@ import libvirt "github.com/vtolstov/go-libvirt"
 
 // StorageVolume represents a volume as seen by libvirt.
 type StorageVolume struct {
-	libvirt.RemoteStorageVolume
+	*libvirt.RemoteStorageVolume
 	l *Libvirt
 }
 
 // Resize resize a volume.
 func (v *StorageVolume) Resize(size uint64, flags libvirt.StorageVolumeResizeFlags) error {
 	req := libvirt.RemoteStorageVolResizeReq{
-		Vol: &libvirt.RemoteStorageVolume{
-			Pool: v.Pool,
-			Name: v.Name,
-			Key:  v.Key,
-		},
+		Vol:      v.RemoteStorageVolume,
 		Capacity: size,
 		Flags:    uint32(flags)}
 
@@ -40,11 +36,7 @@ func (v *StorageVolume) Resize(size uint64, flags libvirt.StorageVolumeResizeFla
 // Delete deletes a volume.
 func (v *StorageVolume) Delete(flags libvirt.StorageVolumeDeleteFlags) error {
 	req := libvirt.RemoteStorageVolDeleteReq{
-		Vol: &libvirt.RemoteStorageVolume{
-			Pool: v.Pool,
-			Name: v.Name,
-			Key:  v.Key,
-		},
+		Vol:   v.RemoteStorageVolume,
 		Flags: uint32(flags)}
 
 	buf, err := encode(&req)
@@ -68,11 +60,7 @@ func (v *StorageVolume) Delete(flags libvirt.StorageVolumeDeleteFlags) error {
 // Download downloads a volume.
 func (v *StorageVolume) Download(s *Stream, offset uint64, length uint64, flags libvirt.StorageVolumeDownloadFlags) error {
 	req := libvirt.RemoteStorageVolDownloadReq{
-		Vol: &libvirt.RemoteStorageVolume{
-			Pool: v.Pool,
-			Name: v.Name,
-			Key:  v.Key,
-		},
+		Vol:    v.RemoteStorageVolume,
 		Offset: offset,
 		Length: length,
 		Flags:  uint32(flags)}
@@ -102,11 +90,7 @@ func (v *StorageVolume) Download(s *Stream, offset uint64, length uint64, flags 
 // Upload uploads a volume.
 func (v *StorageVolume) Upload(s *Stream, offset uint64, length uint64, flags libvirt.StorageVolumeUploadFlags) error {
 	req := libvirt.RemoteStorageVolUploadReq{
-		Vol: &libvirt.RemoteStorageVolume{
-			Pool: v.Pool,
-			Name: v.Name,
-			Key:  v.Key,
-		},
+		Vol:    v.RemoteStorageVolume,
 		Offset: offset,
 		Length: length,
 		Flags:  uint32(flags)}
