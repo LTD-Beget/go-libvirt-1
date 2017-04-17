@@ -48,11 +48,8 @@ const (
 // StoragePoolLookupByName returns the storage pool associated with the provided name.
 // An error is returned if the requested storage pool is not found.
 func (l *Libvirt) StoragePoolLookupByName(name string) (*StoragePool, error) {
-	req := struct {
-		Name string
-	}{
-		Name: name,
-	}
+	req := libvirt.RemoteStoragePoolLookupByNameReq{Name: name}
+	res := libvirt.RemoteStoragePoolLookupByNameRes{}
 
 	buf, err := encode(&req)
 	if err != nil {
@@ -69,26 +66,21 @@ func (l *Libvirt) StoragePoolLookupByName(name string) (*StoragePool, error) {
 		return nil, decodeError(r.Payload)
 	}
 
-	result := struct {
-		Pool StoragePool
-	}{}
-
 	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
-	_, err = dec.Decode(&result)
+	_, err = dec.Decode(&res)
 	if err != nil {
 		return nil, err
 	}
 
-	result.Pool.l = l
-	return &result.Pool, nil
+	pool := &StoragePool{RemoteStoragePool: *res.Pool, l: l}
+	return pool, nil
 }
 
 // StoragePoolLookupByUUID returns the storage pool associated with the provided uuid.
 // An error is returned if the requested storage pool is not found.
 func (l *Libvirt) StoragePoolLookupByUUID(uuid string) (*StoragePool, error) {
-	req := struct {
-		UUID libvirt.UUID
-	}{}
+	req := libvirt.RemoteStoragePoolLookupByUuidReq{}
+	res := libvirt.RemoteStoragePoolLookupByUuidRes{}
 
 	_, err := hex.Decode(req.UUID[:], []byte(strings.Replace(uuid, "-", "", -1)))
 	if err != nil {
@@ -120,8 +112,8 @@ func (l *Libvirt) StoragePoolLookupByUUID(uuid string) (*StoragePool, error) {
 		return nil, err
 	}
 
-	result.Pool.l = l
-	return &result.Pool, nil
+	pool := &StoragePool{RemoteStoragePool: *res.Pool, l: l}
+	return pool, nil
 }
 
 // Refresh refreshes the storage pool.

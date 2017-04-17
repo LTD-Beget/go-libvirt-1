@@ -14,14 +14,9 @@ type Secret struct {
 }
 
 // Secrets returns all secrets managed by the libvirt daemon.
-func (l *Libvirt) Secrets() ([]Secret, error) {
-	req := struct {
-		NeedResults uint32
-		Flags       uint32
-	}{
-		NeedResults: 1,
-		Flags:       0, // unused per libvirt source, callers should pass 0
-	}
+func (l *Libvirt) Secrets() ([]*Secret, error) {
+	req := libvirt.RemoteConnectListAllSecretsReq{NeedResults: 1, Flags: 0}
+	res := libvirt.RemoteConnectListAllSecretsRes{}
 
 	buf, err := encode(&req)
 	if err != nil {
@@ -38,16 +33,15 @@ func (l *Libvirt) Secrets() ([]Secret, error) {
 		return nil, decodeError(r.Payload)
 	}
 
-	result := struct {
-		Secrets []Secret
-		Count   uint32
-	}{}
-
 	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
-	_, err = dec.Decode(&result)
+	_, err = dec.Decode(&res)
 	if err != nil {
 		return nil, err
 	}
 
-	return result.Secrets, nil
+	var secrets []*Secret
+	for _, secret := range res.Secrets {
+		secrets = append(secrets, &Secret{l: l, RemoteSecret: *secret})
+	}
+	return secrets, nil
 }
