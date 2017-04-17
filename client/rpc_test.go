@@ -1,0 +1,242 @@
+package client
+
+import (
+	"bytes"
+	"sync"
+	"testing"
+
+	"github.com/davecgh/go-xdr/xdr2"
+	libvirt "github.com/vtolstov/go-libvirt"
+	"github.com/vtolstov/go-libvirt/libvirttest"
+)
+
+var (
+	// dc229f87d4de47198cfd2e21c6105b01
+	testUUID = libvirt.UUID{
+		0xdc, 0x22, 0x9f, 0x87, 0xd4, 0xde, 0x47, 0x19,
+		0x8c, 0xfd, 0x2e, 0x21, 0xc6, 0x10, 0x5b, 0x01,
+	}
+
+	testHeader = []byte{
+		0x20, 0x00, 0x80, 0x86, // program
+		0x00, 0x00, 0x00, 0x01, // version
+		0x00, 0x00, 0x00, 0x01, // procedure
+		0x00, 0x00, 0x00, 0x00, // type
+		0x00, 0x00, 0x00, 0x00, // serial
+		0x00, 0x00, 0x00, 0x00, // status
+	}
+
+	testEventHeader = []byte{
+		0x00, 0x00, 0x00, 0xb0, // length
+		0x20, 0x00, 0x80, 0x87, // program
+		0x00, 0x00, 0x00, 0x01, // version
+		0x00, 0x00, 0x00, 0x06, // procedure
+		0x00, 0x00, 0x00, 0x01, // type
+		0x00, 0x00, 0x00, 0x00, // serial
+		0x00, 0x00, 0x00, 0x00, // status
+	}
+
+	testEvent = []byte{
+		0x00, 0x00, 0x00, 0x01, // callback id
+
+		// domain name ("test")
+		0x00, 0x00, 0x00, 0x04, 0x74, 0x65, 0x73, 0x74,
+
+		// uuid (dc229f87d4de47198cfd2e21c6105b01)
+		0xdc, 0x22, 0x9f, 0x87, 0xd4, 0xde, 0x47, 0x19,
+		0x8c, 0xfd, 0x2e, 0x21, 0xc6, 0x10, 0x5b, 0x01,
+
+		// domain id (14)
+		0x00, 0x00, 0x00, 0x0e,
+
+		// event name (BLOCK_JOB_COMPLETED)
+		0x00, 0x00, 0x00, 0x13, 0x42, 0x4c, 0x4f, 0x43,
+		0x4b, 0x5f, 0x4a, 0x4f, 0x42, 0x5f, 0x43, 0x4f,
+		0x4d, 0x50, 0x4c, 0x45, 0x54, 0x45, 0x44, 0x00,
+
+		// seconds (1462211891)
+		0x00, 0x00, 0x00, 0x00, 0x57, 0x27, 0x95, 0x33,
+
+		// microseconds (931791)
+		0x00, 0x0e, 0x37, 0xcf,
+
+		// event json data
+		// ({"device":"drive-ide0-0-0","len":0,"offset":0,"speed":0,"type":"commit"})
+		0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x48,
+		0x7b, 0x22, 0x64, 0x65, 0x76, 0x69, 0x63, 0x65,
+		0x22, 0x3a, 0x22, 0x64, 0x72, 0x69, 0x76, 0x65,
+		0x2d, 0x69, 0x64, 0x65, 0x30, 0x2d, 0x30, 0x2d,
+		0x30, 0x22, 0x2c, 0x22, 0x6c, 0x65, 0x6e, 0x22,
+		0x3a, 0x30, 0x2c, 0x22, 0x6f, 0x66, 0x66, 0x73,
+		0x65, 0x74, 0x22, 0x3a, 0x30, 0x2c, 0x22, 0x73,
+		0x70, 0x65, 0x65, 0x64, 0x22, 0x3a, 0x30, 0x2c,
+		0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22,
+		0x63, 0x6f, 0x6d, 0x6d, 0x69, 0x74, 0x22, 0x7d,
+	}
+
+	testErrorMessage = []byte{
+		0x00, 0x00, 0x00, 0x37, // code
+		0x00, 0x00, 0x00, 0x0a, // domain id
+
+		// message ("Requested operation is not valid: domain is not running")
+		0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x37,
+		0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x65,
+		0x64, 0x20, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x74,
+		0x69, 0x6f, 0x6e, 0x20, 0x69, 0x73, 0x20, 0x6e,
+		0x6f, 0x74, 0x20, 0x76, 0x61, 0x6c, 0x69, 0x64,
+		0x3a, 0x20, 0x64, 0x6f, 0x6d, 0x61, 0x69, 0x6e,
+		0x20, 0x69, 0x73, 0x20, 0x6e, 0x6f, 0x74, 0x20,
+		0x72, 0x75, 0x6e, 0x6e, 0x69, 0x6e, 0x67, 0x00,
+
+		// error level
+		0x00, 0x00, 0x00, 0x02,
+	}
+
+	testDomain = libvirt.RemoteDomain{
+		Name: "test-domain",
+		UUID: testUUID,
+		ID:   1,
+	}
+)
+
+func TestExtractHeader(t *testing.T) {
+	r := bytes.NewBuffer(testHeader)
+	h, err := extractHeader(r)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if h.Program != libvirt.RemoteProgram {
+		t.Errorf("expected Program %q, got %q", libvirt.RemoteProgram, h.Program)
+	}
+
+	if h.Version != libvirt.RemoteProtocolVersion {
+		t.Errorf("expected version %q, got %q", libvirt.RemoteProtocolVersion, h.Version)
+	}
+
+	if h.Procedure != libvirt.RemoteProcConnectOpen {
+		t.Errorf("expected procedure %q, got %q", libvirt.RemoteProcConnectOpen, h.Procedure)
+	}
+
+	if h.Type != libvirt.MessageTypeCall {
+		t.Errorf("expected type %q, got %q", libvirt.MessageTypeCall, h.Type)
+	}
+
+	if h.Status != libvirt.MessageStatusOK {
+		t.Errorf("expected status %q, got %q", libvirt.MessageStatusOK, h.Status)
+	}
+}
+
+func TestPktLen(t *testing.T) {
+	data := []byte{0x00, 0x00, 0x00, 0xa} // uint32:10
+	r := bytes.NewBuffer(data)
+
+	expected := uint32(10)
+	actual, err := pktlen(r)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if expected != actual {
+		t.Errorf("expected packet length %q, got %q", expected, actual)
+	}
+}
+
+func TestDecodeError(t *testing.T) {
+	expected := "Requested operation is not valid: domain is not running"
+
+	err := decodeError(testErrorMessage)
+	if err.Error() != expected {
+		t.Errorf("expected error %s, got %s", expected, err.Error())
+	}
+}
+
+func TestEncode(t *testing.T) {
+	data := "test"
+	buf, err := encode(data)
+	if err != nil {
+		t.Error(err)
+	}
+
+	dec := xdr.NewDecoder(bytes.NewReader(buf.Bytes()))
+	res, _, err := dec.DecodeString()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if res != data {
+		t.Errorf("expected %s, got %s", data, res)
+	}
+}
+
+func TestRegister(t *testing.T) {
+	l := &Libvirt{}
+	l.callbacks = make(map[uint32]chan Message)
+	id := uint32(1)
+	c := make(chan Message)
+
+	l.register(id, c)
+	if _, ok := l.callbacks[id]; !ok {
+		t.Error("expected callback to register")
+	}
+}
+
+func TestDeregister(t *testing.T) {
+	id := uint32(1)
+
+	l := &Libvirt{}
+	l.callbacks = map[uint32]chan Message{
+		id: make(chan Message),
+	}
+
+	l.deregister(id)
+	if _, ok := l.callbacks[id]; ok {
+		t.Error("expected callback to deregister")
+	}
+}
+
+func TestSerial(t *testing.T) {
+	count := uint32(10)
+	l := &Libvirt{}
+
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			l.serial()
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+
+	expected := count + uint32(1)
+	actual := l.serial()
+	if expected != actual {
+		t.Errorf("expected serial to be %d, got %d", expected, actual)
+	}
+}
+
+func TestLookup(t *testing.T) {
+	id := uint32(1)
+	c := make(chan Message)
+	name := "test"
+
+	conn := libvirttest.New()
+	l := New(conn)
+
+	l.register(id, c)
+
+	d, err := l.lookupByName(name)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if d == nil {
+		t.Error("nil domain returned")
+	}
+
+	if d.Name != name {
+		t.Errorf("expected domain %s, got %s", name, d.Name)
+	}
+}
