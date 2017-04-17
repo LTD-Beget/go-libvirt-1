@@ -7,6 +7,7 @@ import "fmt"
 //go:generate stringer -type=RemoteProcedure,MessageStatus,MessageType -output internal_string.go
 //go:generate stringer -type=StoragePoolsFlags -output storagepool_string.go
 //go:generate stringer -type=StorageVolumeDownloadFlags,StorageVolumeUploadFlags,StorageVolumeCreateFlags,StorageVolumeDeleteFlags,StorageVolumeResizeFlags -output storagevolume_string.go
+//go:generate stringer -type=DomainSnapshotCreateFlags,DomainSnapshotDeleteFlags,DomainSnapshotListFlags,DomainSnapshotRevertFlags -output domainsnapshot_string.go
 
 type UUID [16]byte
 
@@ -160,6 +161,102 @@ const (
 
 	// StorageVolumeResizeFlagShrink allow decrease in capacity.
 	StorageVolumeResizeFlagShrink
+)
+
+// DomainSnapshotCreateFlags specifies options when performing a snapshot creation.
+type DomainSnapshotCreateFlags uint32
+
+const (
+	// DomainSnapshotCreateFlagRedefine restore or alter metadata.
+	DomainSnapshotCreateFlagRedefine DomainSnapshotCreateFlags = 1 << iota
+
+	// DomainSnapshotCreateFlagCreateCurrent with redefine, make snapshot current.
+	DomainSnapshotCreateFlagCreateCurrent
+
+	// DomainSnapshotCreateFlagNoMetadata make snapshot without remembering it.
+	DomainSnapshotCreateFlagNoMetadata
+
+	// DomainSnapshotCreateFlagCreateHalt stop running guest after snapshot.
+	DomainSnapshotCreateFlagCreateHalt
+
+	// DomainSnapshotCreateFlagCreateDiskOnly disk snapshot, not system checkpoint.
+	DomainSnapshotCreateFlagCreateDiskOnly
+
+	// DomainSnapshotCreateFlagCreateReuseExt reuse any existing external files.
+	DomainSnapshotCreateFlagCreateReuseExt
+
+	// DomainSnapshotCreateFlagCreateQuiesce use guest agent to quiesce all mounted file systems within the domain.
+	DomainSnapshotCreateFlagCreateQuiesce
+
+	// DomainSnapshotCreateFlagCreateAtomic atomically avoid partial changes.
+	DomainSnapshotCreateFlagCreateAtomic
+
+	// DomainSnapshotCreateFlagCreateLive create the snapshot while the guest is running.
+	DomainSnapshotCreateFlagCreateLive
+)
+
+// DomainSnapshotDeleteFlags specifies options when performing a snapshot deletion.
+type DomainSnapshotDeleteFlags uint32
+
+const (
+	// DomainSnapshotDeleteFlagChildren also delete children.
+	DomainSnapshotDeleteFlagChildren DomainSnapshotDeleteFlags = 1 << iota
+
+	// DomainSnapshotDeleteFlagMetadataOnly delete just metadata.
+	DomainSnapshotDeleteFlagMetadataOnly
+
+	// DomainSnapshotDeleteFlagChildrenOnly delete just children.
+	DomainSnapshotDeleteFlagChildrenOnly
+)
+
+type DomainSnapshotListFlags uint32
+
+const (
+	// DomainSnapshotListDescendants list all descendants, not just children, when listing a snapshot.
+	DomainSnapshotListFlagDescendants DomainSnapshotListFlags = 1 << iota
+
+	// DomainSnapshotListRoots filter by snapshots with no parents, when listing a domain.
+	DomainSnapshotListFlagRoots
+
+	// DomainSnapshotListMetadata filter by snapshots which have metadata.
+	DomainSnapshotListFlagMetadata
+
+	// DomainSnapshotListLeaves filter by snapshots with no children.
+	DomainSnapshotListFlagLeaves
+
+	// DomainSnapshotListNoLeaves filter by snapshots that have children.
+	DomainSnapshotListFlagNoLeaves
+
+	// DomainSnapshotListNoMetadata filter by snapshots with no metadata.
+	DomainSnapshotListFlagNoMetadata
+
+	// DomainSnapshotListInactive filter by snapshots taken while guest was shut off.
+	DomainSnapshotListFlagInactive
+
+	// DomainSnapshotListAactive filter by snapshots taken while guest was active, and with memory state.
+	DomainSnapshotListFlagAactive
+
+	// DomainSnapshotListDiskOnly filter by snapshots taken while guest was active, but without memory state.
+	DomainSnapshotListFlagDiskOnly
+
+	// DomainSnapshotListInternal filter by snapshots stored internal to disk images.
+	DomainSnapshotListFlagInternal
+
+	// DomainSnapshotListExternal filter by snapshots that use files external to disk images.
+	DomainSnapshotListFlagExternal
+)
+
+type DomainSnapshotRevertFlags uint32
+
+const (
+	// DomainSnapshotRevertFlagRunning run after revert.
+	DomainSnapshotRevertFlagRunning DomainSnapshotRevertFlags = 1 << iota
+
+	// DomainSnapshotRevertFlagPaused pause after revert.
+	DomainSnapshotRevertFlagPaused
+
+	// DomainSnapshotRevertFlagForce allow risky reverts.
+	DomainSnapshotRevertFlagForce
 )
 
 const (
