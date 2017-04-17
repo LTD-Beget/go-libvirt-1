@@ -8,69 +8,6 @@ type StorageVolume struct {
 	l *Libvirt
 }
 
-// StorageVolumeDownloadFlags specifies options when performing a volume download.
-type StorageVolumeDownloadFlags uint32
-
-const (
-	// StorageVolumeDownloadFlagNone default
-	StorageVolumeDownloadFlagNone StorageVolumeDownloadFlags = 0
-
-	// StorageVolumeDownloadFlagSparseStream use sparse stream.
-	StorageVolumeDownloadFlagSparseStream StorageVolumeDownloadFlags = 1 << iota
-)
-
-// StorageVolumeUploadFlags specifies options when performing a volume upload.
-type StorageVolumeUploadFlags uint32
-
-const (
-	// StorageVolumeUploadFlagNone default
-	StorageVolumeUploadFlagNone StorageVolumeUploadFlags = 0
-
-	// StorageVolumeUploadFlagSparseStream use sparse stream.
-	StorageVolumeUploadFlagSparseStream StorageVolumeUploadFlags = 1 << iota
-)
-
-// StorageVolumeCreateFlags specifies options when performing a volume creation.
-type StorageVolumeCreateFlags uint32
-
-const (
-	_ StorageVolumeCreateFlags = iota
-	// StorageVolumeCreateFlagPreallocMetadata preallocates metadata
-	StorageVolumeCreateFlagPreallocMetadata
-
-	// StorageVolumeCreateFlagReflink use btrfs light copy
-	StorageVolumeCreateFlagReflink
-)
-
-// StorageVolumeDeleteFlags specifies options when performing a volume deletion.
-type StorageVolumeDeleteFlags uint32
-
-const (
-	// StorageVolumeDeleteFlagNormal delete metadata only (fast)
-	StorageVolumeDeleteFlagNormal StorageVolumeDeleteFlags = iota
-
-	// StorageVolumeDeleteFlagZeroes clear all data to zeros (slow)
-	StorageVolumeDeleteFlagZeroes
-
-	// StorageVolumeDeleteFlagWithSnapshots force removal of volume, even if in use
-	StorageVolumeDeleteFlagWithSnapshots
-)
-
-// StorageVolumeResizeFlags specifies options when performing a volume deletion.
-type StorageVolumeResizeFlags uint32
-
-const (
-	_ StorageVolumeResizeFlags = 0
-	// StorageVolumeResizeFlagAllocate force allocation of new size.
-	StorageVolumeResizeFlagAllocate StorageVolumeResizeFlags = 1 << (iota - 1)
-
-	// StorageVolumeResizeFlagDelta size is relative to current.
-	StorageVolumeResizeFlagDelta
-
-	// StorageVolumeResizeFlagShrink allow decrease in capacity.
-	StorageVolumeResizeFlagShrink
-)
-
 // Resize resize a volume.
 func (v *StorageVolume) Resize(size uint64, flags StorageVolumeResizeFlags) error {
 	payload := struct {
