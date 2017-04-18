@@ -199,6 +199,81 @@ func (d *Domain) MigrateSetMaxDowntime(downtime uint64, flags uint32) error {
 	return nil
 }
 
+// DetachDevice detach device from the domain.
+func (d *Domain) DetachDevice(x string, flags libvirt.DomainDeviceModifyFlags) error {
+	req := libvirt.RemoteDomainDetachDeviceFlagsReq{
+		Domain: d.RemoteDomain,
+		Xml:    x,
+		Flags:  uint32(flags)}
+
+	buf, err := encode(&req)
+	if err != nil {
+		return err
+	}
+
+	resp, err := d.l.send(libvirt.RemoteProcDomainDetachDeviceFlags, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
+	if err != nil {
+		return err
+	}
+
+	r := <-resp
+	if r.Header.Status != libvirt.MessageStatusOK {
+		return decodeError(r.Payload)
+	}
+
+	return nil
+}
+
+// AttachDevice attach device to the domain.
+func (d *Domain) AttachDevice(x string, flags libvirt.DomainDeviceModifyFlags) error {
+	req := libvirt.RemoteDomainAttachDeviceFlagsReq{
+		Domain: d.RemoteDomain,
+		Xml:    x,
+		Flags:  uint32(flags)}
+
+	buf, err := encode(&req)
+	if err != nil {
+		return err
+	}
+
+	resp, err := d.l.send(libvirt.RemoteProcDomainAttachDeviceFlags, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
+	if err != nil {
+		return err
+	}
+
+	r := <-resp
+	if r.Header.Status != libvirt.MessageStatusOK {
+		return decodeError(r.Payload)
+	}
+
+	return nil
+}
+
+// UpdateDevice attach device to the domain.
+func (d *Domain) UpdateDevice(x string, flags libvirt.DomainDeviceModifyFlags) error {
+	req := libvirt.RemoteDomainUpdateDeviceFlagsReq{
+		Domain: d.RemoteDomain,
+		Xml:    x,
+		Flags:  uint32(flags)}
+
+	buf, err := encode(&req)
+	if err != nil {
+		return err
+	}
+
+	resp, err := d.l.send(libvirt.RemoteProcDomainUpdateDeviceFlags, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
+	if err != nil {
+		return err
+	}
+
+	r := <-resp
+	if r.Header.Status != libvirt.MessageStatusOK {
+		return decodeError(r.Payload)
+	}
+
+	return nil
+}
+
 // Undefine undefines the domain.
 // The flags argument allows additional options to be specified such as
 // cleaning up snapshot metadata. For more information on available

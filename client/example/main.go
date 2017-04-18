@@ -42,24 +42,35 @@ func main() {
 		log.Fatalf("failed: %v", err)
 	}
 
-	volsrc, err := pool.StorageVolumeLookupByName("143177")
+	volumes, err := pool.ListAllStorageVolumes(0)
 	if err != nil {
 		log.Fatalf("failed: %v", err)
 	}
 
-	x := `<volume type='file'>
-    <name>test</name>
-    <allocation unit='bytes'>945627136</allocation>
-    <target>
-      <format type='qcow2'/>
-    </target>
-    </volume>`
-
-	volnew, err := pool.StorageVolumeCreateXMLFrom(x, volsrc, 0)
-	if err != nil {
-		log.Fatalf("failed: %v", err)
+	for _, vol := range volumes {
+		fmt.Printf("Name: %s\n", vol.Name)
 	}
-	fmt.Printf("%#+v\n", volnew)
+
+	/*
+	   	volsrc, err := pool.StorageVolumeLookupByName("143177")
+	   	if err != nil {
+	   		log.Fatalf("failed: %v", err)
+	   	}
+
+	   	x := `<volume type='file'>
+	       <name>test</name>
+	       <allocation unit='bytes'>945627136</allocation>
+	       <target>
+	         <format type='qcow2'/>
+	       </target>
+	       </volume>`
+
+	   	volnew, err := pool.StorageVolumeCreateXMLFrom(x, volsrc, 0)
+	   	if err != nil {
+	   		log.Fatalf("failed: %v", err)
+	   	}
+	   	fmt.Printf("%#+v\n", volnew)
+	*/
 
 	if err := l.Disconnect(); err != nil {
 		log.Fatal("failed to disconnect: %v", err)

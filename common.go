@@ -8,7 +8,7 @@ import "fmt"
 //go:generate stringer -type=StoragePoolsFlags,StorageXmlFlags -output storagepool_string.go
 //go:generate stringer -type=StorageVolumeDownloadFlags,StorageVolumeUploadFlags,StorageVolumeCreateFlags,StorageVolumeDeleteFlags,StorageVolumeResizeFlags,StorageVolumeWipeAlgFlags -output storagevolume_string.go
 //go:generate stringer -type=DomainSnapshotCreateFlags,DomainSnapshotDeleteFlags,DomainSnapshotListFlags,DomainSnapshotRevertFlags -output domainsnapshot_string.go
-//go:generate stringer -type=DomainBlockResizeFlags,DomainXMLFlags,DomainCreateFlags,DomainRebootFlags,DomainShutdownFlags,DomainMigrateFlags,DomainUndefineFlags,DomainDefineXMLFlags,DomainDestroyFlags -output domain_string.go
+//go:generate stringer -type=DomainAffectFlags,DomainDeviceModifyFlags,DomainBlockResizeFlags,DomainXMLFlags,DomainCreateFlags,DomainRebootFlags,DomainShutdownFlags,DomainMigrateFlags,DomainUndefineFlags,DomainDefineXMLFlags,DomainDestroyFlags -output domain_string.go
 
 type UUID [16]byte
 
@@ -69,6 +69,25 @@ const (
 	// MessageStatusContinue is only used for streams.
 	// This indicates that further data packets will be following.
 	MessageStatusContinue
+)
+
+// DomainDeviceModifyFlags specifies flags for device modify
+type DomainDeviceModifyFlags uint32
+
+const (
+	DomainDeviceModifyFlagConfig DomainDeviceModifyFlags = iota
+	DomainDeviceModifyFlagCurrent
+	DomainDeviceModifyFlagLive
+	DomainDeviceModifyFlagForce
+)
+
+// DomainAffectFlags specifies flags for domain modify
+type DomainAffectFlags uint32
+
+const (
+	DomainAffectFlagCurrent DomainAffectFlags = iota
+	DomainAffectFlagLive
+	DomainAffectFlagConfig
 )
 
 // StoragePoolsFlags specifies storage pools to list.
@@ -411,6 +430,9 @@ const (
 
 	// DomainMigrateFlagRDMAPinAll enables RDMA memory pinning.
 	DomainMigrateFlagRDMAPinAll
+
+	// DomainMigrateFlagPostcopy enable post-copy migration.
+	DomainMigrateFlagPostcopy
 )
 
 // DomainUndefineFlags specifies options available when undefining a domain.
