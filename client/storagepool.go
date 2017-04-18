@@ -138,6 +138,40 @@ func (l *Libvirt) ListAllStoragePools(flags libvirt.StoragePoolsFlags) ([]*Stora
 	return pools, nil
 }
 
+// ListAllStorageVolumes returns a list of defined storage volumes.
+// the provided flags. See StoragePools*.
+func (p *StoragePool) ListAllStorageVolumes(flags uint32) ([]*StorageVolume, error) {
+	req := libvirt.RemoteStoragePoolListAllVolumesReq{Pool: p.RemoteStoragePool, NeedResults: 1, Flags: uint32(flags)}
+	res := libvirt.RemoteStoragePoolListAllVolumesRes{}
+
+	buf, err := encode(&req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := p.l.send(libvirt.RemoteProcStoragePoolListAllVolumes, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
+	if err != nil {
+		return nil, err
+	}
+
+	r := <-resp
+	if r.Header.Status != libvirt.MessageStatusOK {
+		return nil, decodeError(r.Payload)
+	}
+
+	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
+	_, err = dec.Decode(&res)
+	if err != nil {
+		return nil, err
+	}
+
+	var volumes []*StorageVolume
+	for _, vol := range res.Vols {
+		volumes = append(volumes, &StorageVolume{RemoteStorageVolume: vol, l: p.l})
+	}
+	return volumes, nil
+}
+
 // SetAutostart set autostart for domain.
 func (p *StoragePool) SetAutostart(autostart bool) error {
 	req := libvirt.RemoteStoragePoolSetAutostartReq{Pool: p.RemoteStoragePool}
