@@ -364,20 +364,16 @@ func New() *MockLibvirt {
 }
 
 func (m *MockLibvirt) handle(conn net.Conn) {
+	var p libvirt.Packet
 	for {
-		// packetLengthSize + headerSize
-		buf := make([]byte, 28)
-		conn.Read(buf)
+		err := binary.Read(conn, binary.BigEndian, &p)
+		if err != nil {
+			panic(err)
+		}
 
-		// extract program
-		prog := binary.BigEndian.Uint32(buf[4:8])
-
-		// extract procedure
-		proc := libvirt.RemoteProcedure(binary.BigEndian.Uint32(buf[12:16]))
-
-		switch prog {
+		switch p.Header.Program {
 		case libvirt.RemoteProgram:
-			m.handleRemote(proc, conn)
+			m.handleRemote(p.Header.Procedure, conn)
 		}
 	}
 }

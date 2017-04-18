@@ -2,13 +2,11 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"os"
 	"time"
 
-	libvirt "github.com/vtolstov/go-libvirt"
 	client "github.com/vtolstov/go-libvirt/client"
 )
 
@@ -44,63 +42,25 @@ func main() {
 		log.Fatalf("failed: %v", err)
 	}
 
-	volsrc, err := pool.StorageVolumeLookupByName("132859")
-	if err != nil {
-		log.Fatalf("failed: %v", err)
-	}
-	voldst, err := pool.StorageVolumeLookupByName("test")
+	volsrc, err := pool.StorageVolumeLookupByName("143177")
 	if err != nil {
 		log.Fatalf("failed: %v", err)
 	}
 
-	src, err := l.StreamNew()
-	if err != nil {
-		log.Fatalf("failed: %v", err)
-	}
-	defer src.Close()
-	err = volsrc.Download(src, 0, 0, 0)
-	if err != nil {
-		log.Fatalf("failed: %v", err)
-	}
+	x := `<volume type='file'>
+    <name>test</name>
+    <allocation unit='bytes'>945627136</allocation>
+    <target>
+      <format type='qcow2'/>
+    </target>
+    </volume>`
 
-	dst, err := l.StreamNew()
+	volnew, err := pool.StorageVolumeCreateXMLFrom(x, volsrc, 0)
 	if err != nil {
 		log.Fatalf("failed: %v", err)
 	}
+	fmt.Printf("%#+v\n", volnew)
 
-	err = voldst.Upload(dst, 0, 0, 0)
-	if err != nil {
-		log.Fatalf("failed: %v", err)
-	}
-	defer dst.Close()
-
-	var n int64
-	buf := make([]byte, libvirt.NetMessageLegacyPayloadMax)
-Loop:
-	for {
-		s, serr := src.Read(buf)
-		if serr != nil && serr != io.EOF {
-			fmt.Printf("src %s\n", serr.Error())
-			break Loop
-		}
-		for {
-			var d int
-			c, err := dst.Write(buf[d:s])
-			n += int64(c)
-			d += c
-			if err != nil {
-				fmt.Printf("dst %s\n", err.Error())
-				time.Sleep(2 * time.Second)
-				continue
-			} else {
-				break
-			}
-		}
-		if serr == io.EOF {
-			break Loop
-		}
-	}
-	fmt.Printf("close after %d\n", n)
 	if err := l.Disconnect(); err != nil {
 		log.Fatal("failed to disconnect: %v", err)
 	}

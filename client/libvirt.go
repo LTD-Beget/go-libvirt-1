@@ -19,7 +19,7 @@ type Libvirt struct {
 
 	// callbacks
 	cm        sync.Mutex
-	callbacks map[uint32]chan Message
+	callbacks map[uint32]chan libvirt.Message
 
 	// streams
 	sm      sync.Mutex
@@ -106,7 +106,7 @@ func New(conn net.Conn) *Libvirt {
 		s:         0,
 		r:         bufio.NewReader(conn),
 		w:         bufio.NewWriter(conn),
-		callbacks: make(map[uint32]chan Message),
+		callbacks: make(map[uint32]chan libvirt.Message),
 		streams:   make(map[uint32]*Stream),
 	}
 

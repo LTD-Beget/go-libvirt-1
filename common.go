@@ -5,8 +5,8 @@ import "fmt"
 //go:generate go run gen.go
 //go:generate goimports -w gen_lxc_protocol.go gen_qemu_protocol.go gen_remote_protocol.go gen_virkeepaliveprotocol.go gen_virnetprotocol.go
 //go:generate stringer -type=RemoteProcedure,MessageStatus,MessageType -output internal_string.go
-//go:generate stringer -type=StoragePoolsFlags -output storagepool_string.go
-//go:generate stringer -type=StorageVolumeDownloadFlags,StorageVolumeUploadFlags,StorageVolumeCreateFlags,StorageVolumeDeleteFlags,StorageVolumeResizeFlags -output storagevolume_string.go
+//go:generate stringer -type=StoragePoolsFlags,StorageXmlFlags -output storagepool_string.go
+//go:generate stringer -type=StorageVolumeDownloadFlags,StorageVolumeUploadFlags,StorageVolumeCreateFlags,StorageVolumeDeleteFlags,StorageVolumeResizeFlags,StorageVolumeWipeAlgFlags -output storagevolume_string.go
 //go:generate stringer -type=DomainSnapshotCreateFlags,DomainSnapshotDeleteFlags,DomainSnapshotListFlags,DomainSnapshotRevertFlags -output domainsnapshot_string.go
 //go:generate stringer -type=DomainBlockResizeFlags,DomainXMLFlags,DomainCreateFlags,DomainRebootFlags,DomainShutdownFlags,DomainMigrateFlags,DomainUndefineFlags,DomainDefineXMLFlags,DomainDestroyFlags -output domain_string.go
 
@@ -99,6 +99,14 @@ const (
 	StoragePoolsFlagSheepdog
 	StoragePoolsFlagGluster
 	StoragePoolsFlagZFS
+)
+
+// StorageXmlFlags
+type StorageXmlFlags uint32
+
+const (
+	// StorageXmlInactive dump inactive pool/volume information
+	StorageXmlInactive StorageXmlFlags = 1
 )
 
 // StorageVolumeDownloadFlags specifies options when performing a volume download.
@@ -438,6 +446,44 @@ const (
 	DestroyFlagGraceful
 )
 
+// StorageVolumeWipeAlgorithmFlags flags for different wiping algorithms
+type StorageVolumeWipeAlgFlags uint32
+
+const (
+	// StorageVolumeWipeAlgZero 1-pass, all zeroes
+	StorageVolumeWipeAlgZero StorageVolumeWipeAlgFlags = iota
+
+	// StorageVolumeWipeAlgNNSA 4-pass NNSA Policy Letter NAP-14.1-C (XVI-8)
+	StorageVolumeWipeAlgNNSA
+
+	// StorageVolumeWipeAlgDOD 4-pass DoD 5220.22-M section 8-306 procedure
+	StorageVolumeWipeAlgDOD
+
+	// StorageVolumeWipeAlgBSI 9-pass method recommended by the German Center of Security in Information Technologies
+	StorageVolumeWipeAlgBSI
+
+	// StorageVolumeWipeAlgGUTMANN The canonical 35-pass sequence
+	StorageVolumeWipeAlgGUTMANN
+
+	// StorageVolumeWipeAlgSCHNEIER 7-pass method described by Bruce Schneier in "Applied Cryptography" (1996)
+	StorageVolumeWipeAlgSCHNEIER
+
+	// StorageVolumeWipeAlgPFITZNER7 7-pass random
+	StorageVolumeWipeAlgPFITZNER7
+
+	// StorageVolumeWipeAlgPFITZNER33 33-pass random
+	StorageVolumeWipeAlgPFITZNER33
+
+	// StorageVolumeWipeAlgRandom 1-pass random
+	StorageVolumeWipeAlgRandom
+
+	// StorageVolumeWipeAlgTrim 1-pass, trim all data on the volume by using TRIM or DISCARD
+	StorageVolumeWipeAlgTrim
+
+	// StorageVolumeWipeAlgLast It reflects the last algorithm supported by this version of the libvirt API
+	StorageVolumeWipeAlgLast
+)
+
 // DomainState specifies state of the domain
 type DomainState uint32
 
@@ -476,3 +522,50 @@ const (
 	RemoteAuthSASL
 	RemoteAuthPolkit
 )
+
+// MessageHeader is a libvirt rpc packet header
+type MessageHeader struct {
+	// Program identifier
+	Program uint32
+
+	// Program version
+	Version uint32
+
+	// Remote procedure identifier
+	Procedure RemoteProcedure
+
+	// Call type, e.g., Reply
+	Type MessageType
+
+	// Call serial number
+	Serial uint32
+
+	// Request status, e.g., StatusOK
+	Status MessageStatus
+}
+
+// Packet represents a RPC request or response.
+type Packet struct {
+	// Size of packet, in bytes, including length.
+	// Length + Header + Payload
+	Length uint32
+	Header MessageHeader
+}
+
+type Message struct {
+	Header  MessageHeader
+	Payload []byte
+}
+
+func NewMessage(hdr *MessageHeader, payload []byte) Message {
+	return Message{Payload: payload, Header: *hdr}
+}
+
+// Error response
+type Error struct {
+	Code     uint32
+	DomainID uint32
+	Padding  uint8
+	Message  string
+	Level    uint32
+}

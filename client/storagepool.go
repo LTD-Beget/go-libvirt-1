@@ -104,9 +104,9 @@ func (p *StoragePool) Refresh(flags uint32) error {
 	return nil
 }
 
-// StoragePools returns a list of defined storage pools. Pools are filtered by
+// ListAllStoragePools returns a list of defined storage pools. Pools are filtered by
 // the provided flags. See StoragePools*.
-func (l *Libvirt) StoragePools(flags libvirt.StoragePoolsFlags) ([]*StoragePool, error) {
+func (l *Libvirt) ListAllStoragePools(flags libvirt.StoragePoolsFlags) ([]*StoragePool, error) {
 	req := libvirt.RemoteConnectListAllStoragePoolsReq{NeedResults: 1, Flags: uint32(flags)}
 	res := libvirt.RemoteConnectListAllStoragePoolsRes{}
 
@@ -180,6 +180,71 @@ func (p *StoragePool) StorageVolumeCreateXML(x string, flags libvirt.StorageVolu
 	}
 
 	resp, err := p.l.send(libvirt.RemoteProcStorageVolCreateXml, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
+	if err != nil {
+		return nil, err
+	}
+
+	r := <-resp
+	if r.Header.Status != libvirt.MessageStatusOK {
+		return nil, decodeError(r.Payload)
+	}
+
+	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
+	_, err = dec.Decode(&res)
+	if err != nil {
+		return nil, err
+	}
+
+	vol := &StorageVolume{RemoteStorageVolume: res.Vol, l: p.l}
+	return vol, nil
+}
+
+// XML dump xml for pool.
+func (p *StoragePool) XML(flags libvirt.StorageXmlFlags) (string, error) {
+	req := libvirt.RemoteStoragePoolGetXmlDescReq{
+		Pool:  p.RemoteStoragePool,
+		Flags: uint32(flags)}
+	res := libvirt.RemoteStoragePoolGetXmlDescRes{}
+
+	buf, err := encode(&req)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := p.l.send(libvirt.RemoteProcStoragePoolGetXmlDesc, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
+	if err != nil {
+		return "", err
+	}
+
+	r := <-resp
+	if r.Header.Status != libvirt.MessageStatusOK {
+		return "", decodeError(r.Payload)
+	}
+
+	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
+	_, err = dec.Decode(&res)
+	if err != nil {
+		return "", err
+	}
+
+	return res.Xml, nil
+}
+
+// StorageVolumeCreateXMLFrom creates a volume from another volume.
+func (p *StoragePool) StorageVolumeCreateXMLFrom(x string, v *StorageVolume, flags libvirt.StorageVolumeCreateFlags) (*StorageVolume, error) {
+	req := libvirt.RemoteStorageVolCreateXmlFromReq{
+		Pool:     p.RemoteStoragePool,
+		Xml:      x,
+		Clonevol: v.RemoteStorageVolume,
+		Flags:    uint32(flags)}
+	res := libvirt.RemoteStorageVolCreateXmlFromRes{}
+
+	buf, err := encode(&req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := p.l.send(libvirt.RemoteProcStorageVolCreateXmlFrom, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
 	if err != nil {
 		return nil, err
 	}

@@ -13,8 +13,8 @@ type Secret struct {
 	l *Libvirt
 }
 
-// Secrets returns all secrets managed by the libvirt daemon.
-func (l *Libvirt) Secrets() ([]*Secret, error) {
+// ListAllSecrets returns all secrets managed by the libvirt daemon.
+func (l *Libvirt) ListAllSecrets() ([]*Secret, error) {
 	req := libvirt.RemoteConnectListAllSecretsReq{
 		NeedResults: 1,
 		Flags:       0}

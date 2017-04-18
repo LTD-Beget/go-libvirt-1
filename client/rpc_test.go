@@ -171,9 +171,9 @@ func TestEncode(t *testing.T) {
 
 func TestRegister(t *testing.T) {
 	l := &Libvirt{}
-	l.callbacks = make(map[uint32]chan Message)
+	l.callbacks = make(map[uint32]chan libvirt.Message)
 	id := uint32(1)
-	c := make(chan Message)
+	c := make(chan libvirt.Message)
 
 	l.register(id, c)
 	if _, ok := l.callbacks[id]; !ok {
@@ -185,8 +185,8 @@ func TestDeregister(t *testing.T) {
 	id := uint32(1)
 
 	l := &Libvirt{}
-	l.callbacks = map[uint32]chan Message{
-		id: make(chan Message),
+	l.callbacks = map[uint32]chan libvirt.Message{
+		id: make(chan libvirt.Message),
 	}
 
 	l.deregister(id)
@@ -219,7 +219,7 @@ func TestSerial(t *testing.T) {
 
 func TestLookup(t *testing.T) {
 	id := uint32(1)
-	c := make(chan Message)
+	c := make(chan libvirt.Message)
 	name := "test"
 
 	conn := libvirttest.New()
@@ -227,7 +227,7 @@ func TestLookup(t *testing.T) {
 
 	l.register(id, c)
 
-	d, err := l.lookupByName(name)
+	d, err := l.DomainLookupByName(name)
 	if err != nil {
 		t.Error(err)
 	}

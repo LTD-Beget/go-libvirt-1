@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"net/url"
 	"strings"
 
@@ -156,6 +157,7 @@ func (d *Domain) MigrateSetMaxSpeed(bandwidth uint64, flags uint32) error {
 	if err != nil {
 		return err
 	}
+	fmt.Printf("ZZZ %#+v\n", req)
 
 	resp, err := d.l.send(libvirt.RemoteProcDomainMigrateSetMaxSpeed, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
 	if err != nil {
@@ -491,6 +493,7 @@ func (l *Libvirt) DomainLookupByName(name string) (*Domain, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("OOO %+#v\n", res)
 
 	return &Domain{RemoteDomain: res.Domain, l: l}, nil
 }

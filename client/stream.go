@@ -18,7 +18,7 @@ type Stream struct {
 	r         chan []byte
 	w         chan []byte
 	done      chan bool
-	msg       chan Message
+	msg       chan libvirt.Message
 	err       error
 }
 
@@ -30,7 +30,7 @@ func (l *Libvirt) StreamNew() (*Stream, error) {
 		r:     make(chan []byte),
 		w:     make(chan []byte),
 		done:  make(chan bool),
-		msg:   make(chan Message),
+		msg:   make(chan libvirt.Message),
 		rwbuf: make([]byte, libvirt.NetMessageLegacyPayloadMax),
 	}
 	go s.io()
