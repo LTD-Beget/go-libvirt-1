@@ -1,12 +1,13 @@
 package main
 
 import (
-	"fmt"
+	"image/png"
 	"log"
 	"net"
 	"os"
 	"time"
 
+	"github.com/spakin/netpbm"
 	client "github.com/vtolstov/go-libvirt/client"
 )
 
@@ -20,60 +21,31 @@ func main() {
 		log.Fatalf("failed to connect: %v", err)
 	}
 
-	v, err := l.Version()
-	if err != nil {
-		log.Fatalf("failed to retrieve libvirt version: %v", err)
-	}
-	fmt.Println("Version:", v)
-
-	domains, err := l.ListAllDomains()
-	if err != nil {
-		log.Fatalf("failed to retrieve domains: %v", err)
-	}
-
-	fmt.Println("ID\tName\t\tUUID")
-	fmt.Printf("--------------------------------------------------------\n")
-	for _, d := range domains {
-		fmt.Printf("%d\t%s\t%x\n", d.ID, d.Name, d.UUID)
-	}
-
-	pool, err := l.StoragePoolLookupByName("sda")
+	domain, err := l.DomainLookupByName("143177")
 	if err != nil {
 		log.Fatalf("failed: %v", err)
 	}
 
-	volumes, err := pool.ListAllStorageVolumes(0)
+	stream, _, err := domain.Screenshot(0, 0)
 	if err != nil {
 		log.Fatalf("failed: %v", err)
 	}
-
-	for _, vol := range volumes {
-		fmt.Printf("Name: %s\n", vol.Name)
+	defer stream.Close()
+	img, err := netpbm.Decode(stream, &netpbm.DecodeOptions{
+		Target: netpbm.PPM,
+		Exact:  true})
+	if err != nil {
+		log.Fatalf("failed: %#+v %v", img, err)
 	}
 
-	/*
-	   	volsrc, err := pool.StorageVolumeLookupByName("143177")
-	   	if err != nil {
-	   		log.Fatalf("failed: %v", err)
-	   	}
+	f, err := os.Create("img.png")
+	defer f.Close()
 
-	   	x := `<volume type='file'>
-	       <name>test</name>
-	       <allocation unit='bytes'>945627136</allocation>
-	       <target>
-	         <format type='qcow2'/>
-	       </target>
-	       </volume>`
-
-	   	volnew, err := pool.StorageVolumeCreateXMLFrom(x, volsrc, 0)
-	   	if err != nil {
-	   		log.Fatalf("failed: %v", err)
-	   	}
-	   	fmt.Printf("%#+v\n", volnew)
-	*/
-
-	if err := l.Disconnect(); err != nil {
-		log.Fatal("failed to disconnect: %v", err)
+	err = png.Encode(f, img)
+	if err != nil {
+		log.Fatalf("failed: %v", err)
 	}
-	fmt.Printf("disconnected\n")
+	if err = l.Close(); err != nil {
+		panic(err)
+	}
 }

@@ -53,14 +53,11 @@ func (l *Libvirt) Connect() error {
 	return l.connect()
 }
 
-// Disconnect shuts down communication with the libvirt server
-// and closes the underlying net.Conn.
-func (l *Libvirt) Disconnect() error {
+func (l *Libvirt) Close() error {
 	// inform libvirt we're done
 	if err := l.disconnect(); err != nil {
 		return err
 	}
-
 	return l.conn.Close()
 }
 

@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/davecgh/go-xdr/xdr2"
 	"github.com/vtolstov/go-libvirt"
@@ -55,6 +57,9 @@ func (l *Libvirt) connect() error {
 }
 
 func (l *Libvirt) disconnect() error {
+	for _, s := range l.streams {
+		s.Abort()
+	}
 	resp, err := l.send(libvirt.RemoteProcConnectClose, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, nil)
 	if err != nil {
 		return err
@@ -72,38 +77,39 @@ func (l *Libvirt) disconnect() error {
 // responses to their respective callback handler.
 func (l *Libvirt) listen() {
 	for {
-		//		l.conn.SetReadDeadline(time.Now().Add(20 * time.Second))
+		l.conn.SetReadDeadline(time.Now().Add(20 * time.Second))
 		// response packet length
 		length, err := pktlen(l.r)
-		fmt.Printf("len %d\n", length)
 		if err != nil {
 			// When the underlying connection EOFs or is closed, stop
 			// this goroutine
 			if err == io.EOF || strings.Contains(err.Error(), "use of closed network connection") {
 				return
 			}
-
-			panic(fmt.Sprintf("invalid packet %s", err))
+			if err, ok := err.(net.Error); ok && err.Timeout() {
+				continue
+			} else {
+				panic(fmt.Sprintf("invalid packet %s", err))
+			}
 		}
 
 		// response header
 		h, err := extractHeader(l.r)
 		if err != nil {
-			fmt.Printf("inv packet: %s\n", err)
-			panic("error")
+			panic(fmt.Sprintf("inv packet: %s\n", err))
 		}
-		fmt.Printf("xxx %+v\n", h)
 		// payload: packet length minus what was previously read
 		size := int(length) - (libvirt.NetMessageHeaderXdrLen + libvirt.NetMessageHeaderMax)
-		fmt.Printf("pkt size %d\n", size)
-		buf := make([]byte, size)
-		_, err = io.ReadFull(l.r, buf)
-		if err != nil {
-			fmt.Printf("ee %s\n", err)
-			// invalid packet
-			continue
+		if size > 0 {
+			buf := make([]byte, size)
+			_, err = io.ReadFull(l.r, buf)
+			if err != nil {
+				panic(err)
+			}
+			l.route(h, buf)
+		} else {
+			l.route(h, nil)
 		}
-		l.route(h, buf)
 	}
 }
 
@@ -129,11 +135,7 @@ func (l *Libvirt) streamRead(res libvirt.Message) {
 
 // route sends incoming packets to their listeners.
 func (l *Libvirt) route(h *libvirt.MessageHeader, payload []byte) {
-	// route events to their respective listener
-	//	if h.Program == constants.ProgramQEMU && h.Procedure == constants.QEMUDomainMonitorEvent {
-	//		l.event()
-	//		return
-	//	}
+	//fmt.Printf("route %d %s\n", len(payload), h)
 	switch h.Type {
 	case libvirt.MessageTypeStream:
 		l.streamRead(libvirt.NewMessage(h, payload))
@@ -157,7 +159,7 @@ func (l *Libvirt) addStream(id uint32, s *Stream) {
 // delStream remove stream
 func (l *Libvirt) delStream(id uint32) {
 	l.sm.Lock()
-	close(l.streams[id].done)
+	//close(l.streams[id].done)
 	delete(l.streams, id)
 	l.sm.Unlock()
 }
@@ -181,7 +183,8 @@ func (l *Libvirt) deregister(id uint32) {
 // The returned channel is used by the caller to receive the asynchronous
 // call response. The channel is closed once a response has been sent.
 func (l *Libvirt) send(proc libvirt.RemoteProcedure, serial uint32, mtype libvirt.MessageType, program uint32, status libvirt.MessageStatus, payload *bytes.Buffer) (<-chan libvirt.Message, error) {
-	var n int
+	var c chan libvirt.Message = nil
+
 	if serial == 0 {
 		serial = l.serial()
 	}
@@ -189,18 +192,17 @@ func (l *Libvirt) send(proc libvirt.RemoteProcedure, serial uint32, mtype libvir
 		program = libvirt.RemoteProgram
 	}
 
-	c := make(chan libvirt.Message)
 	switch mtype {
 	case libvirt.MessageTypeCall:
+		c = make(chan libvirt.Message)
 		l.register(serial, c)
 	}
-	fmt.Printf("RRR\n")
+
 	size := libvirt.NetMessageHeaderXdrLen + libvirt.NetMessageHeaderMax
-	fmt.Printf("%d %d %d\n", size, libvirt.NetMessageHeaderXdrLen, libvirt.NetMessageHeaderMax)
 	if payload != nil {
 		size += payload.Len()
 	}
-	fmt.Printf("%d %d %d\n", size, libvirt.NetMessageHeaderXdrLen, libvirt.NetMessageHeaderMax)
+
 	p := libvirt.Packet{
 		Length: uint32(size),
 		Header: libvirt.MessageHeader{
@@ -210,43 +212,47 @@ func (l *Libvirt) send(proc libvirt.RemoteProcedure, serial uint32, mtype libvir
 			Type:      mtype,
 			Serial:    serial,
 			Status:    status,
-		},
-	}
-	//l.conn.SetWriteDeadline(time.Now().Add(20 * time.Second))
-	fmt.Printf("EEE %#+s\n", p)
+		}}
+
+	buf := bytes.NewBuffer(nil)
+
 	// write header
-	err := binary.Write(l.w, binary.BigEndian, p)
+	err := binary.Write(buf, binary.BigEndian, p)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("header writed\n")
 	// write payload
 	if payload != nil {
-		fmt.Printf("qqqqq\n")
 		if mtype != libvirt.MessageTypeStream {
-			fmt.Printf("non stream\n")
-			err = binary.Write(l.w, binary.BigEndian, payload.Bytes())
+			err = binary.Write(buf, binary.BigEndian, payload.Bytes())
 		} else {
-			fmt.Printf("stream %d\n", payload.Len())
-			n, err = l.w.Write(payload.Bytes())
-			fmt.Printf("stream copy %d %#+v\n", n, err)
+			_, err = buf.Write(payload.Bytes())
 		}
-		fmt.Printf("yyyy\n")
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	fmt.Printf("try to flush\n")
+Loop:
+	for {
+		l.conn.SetWriteDeadline(time.Now().Add(20 * time.Second))
+		_, err := l.w.Write(buf.Bytes())
+		switch err {
+		case nil, io.EOF:
+			break Loop
+		default:
+			if err, ok := err.(net.Error); ok && err.Timeout() {
+				continue
+			} else {
+				break Loop
+			}
+		}
+	}
+
 	if err := l.w.Flush(); err != nil {
 		return nil, err
 	}
-	fmt.Printf("flashed\n")
-	switch mtype {
-	case libvirt.MessageTypeCall:
-		return c, nil
-	}
-	return nil, nil
+	return c, nil
 }
 
 // encode XDR encodes the provided data.
@@ -302,7 +308,6 @@ func pktlen(r io.Reader) (uint32, error) {
 			err = fmt.Errorf("invalid packet %d > %d", size, libvirt.NetMessageMax)
 		}
 	}
-	fmt.Printf("UUU %d\n", size)
 	return size, err
 }
 

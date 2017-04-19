@@ -75,9 +75,16 @@ const (
 type DomainDeviceModifyFlags uint32
 
 const (
+	// DomainDeviceModifyFlagConfig affect only config.
 	DomainDeviceModifyFlagConfig DomainDeviceModifyFlags = iota
+
+	// DomainDeviceModifyFlagCurrent affect current domain.
 	DomainDeviceModifyFlagCurrent
+
+	// DomainDeviceModifyFlagLive affect live running domain.
 	DomainDeviceModifyFlagLive
+
+	// DomainDeviceModifyFlagForce force remove device
 	DomainDeviceModifyFlagForce
 )
 
@@ -85,8 +92,13 @@ const (
 type DomainAffectFlags uint32
 
 const (
+	// DomainAffectFlagCurrent affect current domain.
 	DomainAffectFlagCurrent DomainAffectFlags = iota
+
+	// DomainAffectFlagLive affect live running domain.
 	DomainAffectFlagLive
+
+	// DomainAffectFlagConfig affect only config.
 	DomainAffectFlagConfig
 )
 

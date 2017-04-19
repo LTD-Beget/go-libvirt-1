@@ -412,7 +412,7 @@ func main() {
 
 				}
 			}
-			fmt.Printf("ttt %s\n", sc.Text())
+			//fmt.Printf("ttt %s\n", sc.Text())
 		}
 		die(sc.Err())
 

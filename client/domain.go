@@ -3,7 +3,6 @@ package client
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"net/url"
 	"strings"
 
@@ -157,7 +156,6 @@ func (d *Domain) MigrateSetMaxSpeed(bandwidth uint64, flags uint32) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("ZZZ %#+v\n", req)
 
 	resp, err := d.l.send(libvirt.RemoteProcDomainMigrateSetMaxSpeed, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
 	if err != nil {
@@ -398,6 +396,64 @@ func (d *Domain) Destroy(flags libvirt.DomainDestroyFlags) error {
 	return nil
 }
 
+// Reset reset the domain.
+// The flags argument allows additional options to be specified.
+// For more information on available flags, see DomainRebootFlags*.
+func (d *Domain) Reset(flags uint32) error {
+	req := libvirt.RemoteDomainResetReq{Domain: d.RemoteDomain, Flags: uint32(flags)}
+
+	buf, err := encode(&req)
+	if err != nil {
+		return err
+	}
+
+	resp, err := d.l.send(libvirt.RemoteProcDomainReset, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
+	if err != nil {
+		return err
+	}
+
+	r := <-resp
+	if r.Header.Status != libvirt.MessageStatusOK {
+		return decodeError(r.Payload)
+	}
+
+	return nil
+}
+
+// Screenshot screenshot the domain screen.
+func (d *Domain) Screenshot(screen uint32, flags uint32) (*Stream, string, error) {
+	req := libvirt.RemoteDomainScreenshotReq{
+		Domain: d.RemoteDomain,
+		Screen: screen,
+		Flags:  uint32(flags)}
+	//res := libvirt.RemoteDomainScreenshotRes{}
+
+	buf, err := encode(&req)
+	if err != nil {
+		return nil, "", err
+	}
+
+	resp, err := d.l.send(libvirt.RemoteProcDomainScreenshot, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
+	if err != nil {
+		return nil, "", err
+	}
+
+	r := <-resp
+	if r.Header.Status != libvirt.MessageStatusOK {
+		return nil, "", decodeError(r.Payload)
+	}
+	s, err := d.l.StreamNew()
+	if err != nil {
+		return nil, "", err
+	}
+
+	s.serial = r.Header.Serial
+	s.procedure = libvirt.RemoteProcDomainScreenshot
+	d.l.addStream(r.Header.Serial, s)
+
+	return s, string(r.Payload), nil
+}
+
 // Reboot reboot the domain.
 // The flags argument allows additional options to be specified.
 // For more information on available flags, see DomainRebootFlags*.
@@ -422,7 +478,7 @@ func (d *Domain) Reboot(flags libvirt.DomainRebootFlags) error {
 	return nil
 }
 
-// Shutdown reboot the domain.
+// Shutdown shutdowns the domain.
 // The flags argument allows additional options to be specified.
 // For more information on available flags, see DomainShutdownFlags*.
 func (d *Domain) Shutdown(flags libvirt.DomainShutdownFlags) error {
@@ -568,7 +624,36 @@ func (l *Libvirt) DomainLookupByName(name string) (*Domain, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("OOO %+#v\n", res)
+
+	return &Domain{RemoteDomain: res.Domain, l: l}, nil
+}
+
+// DomainLookupByID returns a domain as seen by libvirt.
+func (l *Libvirt) DomainLookupByID(id int) (*Domain, error) {
+	req := libvirt.RemoteDomainLookupByIdReq{Id: id}
+	res := libvirt.RemoteDomainLookupByIdRes{}
+
+	buf, err := encode(&req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := l.send(libvirt.RemoteProcDomainLookupById, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
+	if err != nil {
+		return nil, err
+	}
+
+	r := <-resp
+	if r.Header.Status != libvirt.MessageStatusOK {
+		return nil, decodeError(r.Payload)
+	}
+
+	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
+
+	_, err = dec.Decode(&res)
+	if err != nil {
+		return nil, err
+	}
 
 	return &Domain{RemoteDomain: res.Domain, l: l}, nil
 }

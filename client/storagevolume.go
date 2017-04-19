@@ -143,7 +143,7 @@ func (v *StorageVolume) XML(flags uint32) (string, error) {
 }
 
 // Download downloads a volume.
-func (v *StorageVolume) Download(s *Stream, offset uint64, length uint64, flags libvirt.StorageVolumeDownloadFlags) error {
+func (v *StorageVolume) Download(offset uint64, length uint64, flags libvirt.StorageVolumeDownloadFlags) (*Stream, error) {
 	req := libvirt.RemoteStorageVolDownloadReq{
 		Vol:    v.RemoteStorageVolume,
 		Offset: offset,
@@ -152,28 +152,33 @@ func (v *StorageVolume) Download(s *Stream, offset uint64, length uint64, flags 
 
 	buf, err := encode(&req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	resp, err := v.l.send(libvirt.RemoteProcStorageVolDownload, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	r := <-resp
 	if r.Header.Status != libvirt.MessageStatusOK {
-		return decodeError(r.Payload)
+		return nil, decodeError(r.Payload)
+	}
+
+	s, err := v.l.StreamNew()
+	if err != nil {
+		return nil, err
 	}
 
 	s.serial = r.Header.Serial
 	s.procedure = libvirt.RemoteProcStorageVolDownload
 	v.l.addStream(r.Header.Serial, s)
 
-	return nil
+	return s, nil
 }
 
 // Upload uploads a volume.
-func (v *StorageVolume) Upload(s *Stream, offset uint64, length uint64, flags libvirt.StorageVolumeUploadFlags) error {
+func (v *StorageVolume) Upload(offset uint64, length uint64, flags libvirt.StorageVolumeUploadFlags) (*Stream, error) {
 	req := libvirt.RemoteStorageVolUploadReq{
 		Vol:    v.RemoteStorageVolume,
 		Offset: offset,
@@ -182,22 +187,27 @@ func (v *StorageVolume) Upload(s *Stream, offset uint64, length uint64, flags li
 
 	buf, err := encode(&req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	resp, err := v.l.send(libvirt.RemoteProcStorageVolUpload, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	r := <-resp
 	if r.Header.Status != libvirt.MessageStatusOK {
-		return decodeError(r.Payload)
+		return nil, decodeError(r.Payload)
+	}
+
+	s, err := v.l.StreamNew()
+	if err != nil {
+		return nil, err
 	}
 
 	s.serial = r.Header.Serial
 	s.procedure = libvirt.RemoteProcStorageVolUpload
 	v.l.addStream(r.Header.Serial, s)
 
-	return nil
+	return s, nil
 }
