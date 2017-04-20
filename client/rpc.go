@@ -317,3 +317,41 @@ func extractHeader(r io.Reader) (*libvirt.MessageHeader, error) {
 	err := binary.Read(r, binary.BigEndian, &h)
 	return &h, err
 }
+
+func decodeTyped(dec *xdr.Decoder) (map[string]interface{}, error) {
+	params := make(map[string]interface{})
+	cnt, _, err := dec.DecodeUint()
+	if err != nil {
+		return nil, err
+	}
+	for idx := uint32(0); idx < cnt; idx++ {
+		tpname, _, err := dec.DecodeString()
+		if err != nil {
+			return nil, err
+		}
+		tptype, _, err := dec.DecodeUint()
+		if err != nil {
+			return nil, err
+		}
+		switch libvirt.TypedParamTypes(tptype) {
+		case libvirt.TypedParamTypeINT:
+			params[tpname], _, err = dec.DecodeInt()
+		case libvirt.TypedParamTypeUINT:
+			params[tpname], _, err = dec.DecodeUint()
+		case libvirt.TypedParamTypeSTRING:
+			params[tpname], _, err = dec.DecodeString()
+		case libvirt.TypedParamTypeBOOLEAN:
+			params[tpname], _, err = dec.DecodeBool()
+		case libvirt.TypedParamTypeDOUBLE:
+			params[tpname], _, err = dec.DecodeDouble()
+		case libvirt.TypedParamTypeLLONG:
+			params[tpname], _, err = dec.DecodeHyper()
+		case libvirt.TypedParamTypeULLONG:
+			params[tpname], _, err = dec.DecodeUhyper()
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+	return params, nil
+}

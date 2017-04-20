@@ -16,11 +16,17 @@ type Domain struct {
 	l *Libvirt
 }
 
-// Domains returns a list of all domains managed by libvirt.
-func (l *Libvirt) ListAllDomains() ([]*Domain, error) {
+// DomainStats represents a domain stats record.
+type DomainStatsRecord struct {
+	libvirt.RemoteDomainStatsRecord
+	Params map[string]interface{}
+}
+
+// ListAllDomains returns a list of all domains managed by libvirt.
+func (l *Libvirt) ListAllDomains(flags libvirt.ListDomainsFlags) ([]*Domain, error) {
 	req := libvirt.RemoteConnectListAllDomainsReq{
 		NeedResults: 1,
-		Flags:       3}
+		Flags:       uint32(flags)}
 	res := libvirt.RemoteConnectListAllDomainsRes{}
 
 	buf, err := encode(&req)
@@ -49,6 +55,51 @@ func (l *Libvirt) ListAllDomains() ([]*Domain, error) {
 		domains = append(domains, &Domain{RemoteDomain: d, l: l})
 	}
 	return domains, nil
+}
+
+// GetDomainsStats returns a stats for all specified domains managed by libvirt.
+func (l *Libvirt) GetDomainsStats(domains []*Domain, stats libvirt.DomainStatsTypes, flags libvirt.GetDomainsStatsFlags) ([]DomainStatsRecord, error) {
+	var ds []*libvirt.RemoteDomain
+	for _, domain := range domains {
+		ds = append(ds, domain.RemoteDomain)
+	}
+	req := libvirt.RemoteConnectGetAllDomainStatsReq{
+		Domains: ds,
+		Stats:   uint32(stats),
+		Flags:   uint32(flags)}
+	res := libvirt.RemoteConnectGetAllDomainStatsRes{}
+
+	buf, err := encode(&req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := l.send(libvirt.RemoteProcConnectGetAllDomainStats, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
+	if err != nil {
+		return nil, err
+	}
+
+	r := <-resp
+	if r.Header.Status != libvirt.MessageStatusOK {
+		return nil, decodeError(r.Payload)
+	}
+
+	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
+	_, err = dec.Decode(&res)
+	if err != nil {
+		return nil, err
+	}
+
+	var statsrecs []DomainStatsRecord
+	for _, st := range res.RetStats {
+		params, err := decodeTyped(dec)
+		if err != nil {
+			return nil, err
+		}
+		statsrecs = append(statsrecs, DomainStatsRecord{RemoteDomainStatsRecord: st, Params: params})
+	}
+
+	return statsrecs, nil
 }
 
 // State returns state of the domain managed by libvirt.

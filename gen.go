@@ -175,8 +175,14 @@ func main() {
 						vartype = "int64"
 					case "opaque":
 						vartype = "byte"
-					case "remote_typed_param":
+					case "remote_typed_param", "remote_typed_param_value":
 						continue
+						/*
+							case "remote_typed_param":
+								vartype = "byte"
+							case "remote_typed_param_value":
+								vartype = "[]byte"
+						*/
 					}
 					if strings.HasPrefix(vartype, "remote_") {
 						vartype = strings.Replace(strings.Title(strings.Replace(vartype, "_", " ", -1)), " ", "", -1)
@@ -200,13 +206,10 @@ func main() {
 				struct_name := strings.TrimSuffix(strings.TrimPrefix(strings.TrimSpace(sc.Text()), "struct remote_nonnull_"), " {")
 				struct_name = strings.TrimSuffix(strings.TrimPrefix(struct_name, "struct remote_"), " {")
 				switch struct_name {
-				case "typed_param":
-					continue
-				case "domain", "network", "storage_pool", "storage_vol", "node_device", "domain_snapshot", "secret", "interface", "nwfilter", "snapshot":
+				case "domain", "network", "storage_pool", "storage_vol", "node_device", "domain_snapshot", "secret", "interface", "nwfilter", "snapshot", "typed_param":
 					if struct_name == "nwfilter" {
 						struct_name = "NwFilter"
 					}
-
 					if struct_name == "storage_vol" {
 						struct_name = "storage_volume"
 					}
@@ -277,8 +280,14 @@ func main() {
 							vartype = "int64"
 						case "opaque":
 							vartype = "byte"
-						case "remote_typed_param":
+						case "remote_typed_param", "remote_typed_param_value":
 							continue
+							/*
+								case "remote_typed_param":
+									vartype = "byte"
+								case "remote_typed_param_value":
+									vartype = "[]byte"
+							*/
 						}
 						if strings.HasPrefix(vartype, "remote_") {
 							vartype = strings.Replace(strings.Title(strings.Replace(vartype, "_", " ", -1)), " ", "", -1)
@@ -379,8 +388,14 @@ func main() {
 							vartype = "int64"
 						case "opaque":
 							vartype = "byte"
-						case "remote_typed_param":
+						case "remote_typed_param", "remote_typed_param_value":
 							continue
+							/*
+								case "remote_typed_param":
+									vartype = "byte"
+								case "remote_typed_param_value":
+									vartype = "[]byte"
+							*/
 						}
 						if strings.HasPrefix(vartype, "remote_") {
 							vartype = strings.Replace(strings.Title(strings.Replace(vartype, "_", " ", -1)), " ", "", -1)

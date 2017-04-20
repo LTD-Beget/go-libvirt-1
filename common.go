@@ -8,16 +8,12 @@ import "fmt"
 //go:generate stringer -type=StoragePoolsFlags,StorageXmlFlags -output storagepool_string.go
 //go:generate stringer -type=StorageVolumeDownloadFlags,StorageVolumeUploadFlags,StorageVolumeCreateFlags,StorageVolumeDeleteFlags,StorageVolumeResizeFlags,StorageVolumeWipeAlgFlags -output storagevolume_string.go
 //go:generate stringer -type=DomainSnapshotCreateFlags,DomainSnapshotDeleteFlags,DomainSnapshotListFlags,DomainSnapshotRevertFlags -output domainsnapshot_string.go
-//go:generate stringer -type=DomainAffectFlags,DomainDeviceModifyFlags,DomainBlockResizeFlags,DomainXMLFlags,DomainCreateFlags,DomainRebootFlags,DomainShutdownFlags,DomainMigrateFlags,DomainUndefineFlags,DomainDefineXMLFlags,DomainDestroyFlags -output domain_string.go
+//go:generate stringer -type=DomainStatsTypes,ListDomainsFlags,GetDomainsStatsFlags,DomainAffectFlags,DomainDeviceModifyFlags,DomainBlockResizeFlags,DomainXMLFlags,DomainCreateFlags,DomainRebootFlags,DomainShutdownFlags,DomainMigrateFlags,DomainUndefineFlags,DomainDefineXMLFlags,DomainDestroyFlags -output domain_string.go
+//go:generate stringer -type=TypedParamTypes  -output=consts_string.go
 
 type UUID [16]byte
 
 type RemoteAuthType uint32
-
-type RemoteTypedParam struct {
-	Type  int
-	Value interface{}
-}
 
 // ErrUnsupported is returned if a procedure is not supported by libvirt
 var ErrUnsupported = fmt.Errorf("unsupported procedure requested")
@@ -88,6 +84,36 @@ const (
 	DomainDeviceModifyFlagForce
 )
 
+// TypedParamTypes
+type TypedParamTypes uint32
+
+const (
+	_ TypedParamTypes = iota
+	TypedParamTypeINT
+	TypedParamTypeUINT
+	TypedParamTypeLLONG
+	TypedParamTypeULLONG
+	TypedParamTypeDOUBLE
+	TypedParamTypeBOOLEAN
+	TypedParamTypeSTRING
+	TypedParamTypeLAST
+)
+
+type RemoteTypedParamValue []byte
+
+/*
+type RemoteTypedParamValue struct {
+	i  int
+	ui uint
+	l  int64
+	ul uint64
+	b  bool
+	d  float64
+	s  string
+	sl []string
+}
+*/
+
 // DomainAffectFlags specifies flags for domain modify
 type DomainAffectFlags uint32
 
@@ -130,6 +156,114 @@ const (
 	StoragePoolsFlagSheepdog
 	StoragePoolsFlagGluster
 	StoragePoolsFlagZFS
+)
+
+// DomainStatsTypes
+type DomainStatsTypes uint32
+
+const (
+	// DomainStatsState return domain state
+	DomainStatsState DomainStatsTypes = 1 << iota
+
+	// DomainStatsCpuTotal return domain CPU info
+	DomainStatsCpuTotal
+
+	// DomainStatsBalloon return domain balloon info
+	DomainStatsBalloon
+
+	// DomainStatsVcpu return domain virtual CPU info
+	DomainStatsVcpu
+
+	// DomainStatsInterface return domain interfaces info
+	DomainStatsInterface
+
+	// DomainStatsBlock return domain block info
+	DomainStatsBlock
+
+	// DomainStatsPerf return domain perf event info
+	DomainStatsPerf
+)
+
+// GetDomainsStatsFlags
+type GetDomainsStatsFlags uint32
+
+const (
+	// GetDomainsStatsActive
+	GetDomainsStatsActive GetDomainsStatsFlags = 1 << iota
+
+	// GetDomainsStatsInactive
+	GetDomainsStatsInactive
+
+	// ListDomainsStatsPersistent
+	ListDomainsStatsPersistent
+
+	// GetDomainsStatsTransient
+	GetDomainsStatsTransient
+
+	// GetDomainsStatsRunning
+	GetDomainsStatsRunning
+
+	// ListDomainsPaused
+	ListDomainsStatsPaused
+
+	// GetDomainsStatsShutoff
+	GetDomainsStatsShutoff
+
+	// GetDomainsStatsOther
+	GetDomainsStatsOther
+
+	// GetDomainsStatsBacking
+	GetDomainsStatsBacking GetDomainsStatsFlags = 1073741824
+
+	// GetDomainsStatsEnforce
+	GetDomainsStatsEnforce GetDomainsStatsFlags = 2147483648
+)
+
+// ListDomainsFlags
+type ListDomainsFlags uint32
+
+const (
+	// ListDomainsActive
+	ListDomainsActive ListDomainsFlags = 1 << iota
+
+	// ListDomainsInactive
+	ListDomainsInactive
+
+	// ListDomainsPersistent
+	ListDomainsPersistent
+
+	// ListDomainsTransient
+	ListDomainsTransient
+
+	// ListDomainsRunning
+	ListDomainsRunning
+
+	// ListDomainsPaused
+	ListDomainsPaused
+
+	// ListDomainsShutoff
+	ListDomainsShutoff
+
+	// ListDomainsOther
+	ListDomainsOther
+
+	// ListDomainsManagedsave
+	ListDomainsManagedsave
+
+	// ListDomainsNoManagedsave
+	ListDomainsNoManagedsave
+
+	// ListDomainsAutostart
+	ListDomainsAutostart
+
+	// ListDomainsNoAutostart
+	ListDomainsNoAutostart
+
+	// ListDomainsHasSnapshot
+	ListDomainsHasSnapshot
+
+	// ListDomainsNoSnapshot
+	ListDomainsNoSnapshot
 )
 
 // StorageXmlFlags

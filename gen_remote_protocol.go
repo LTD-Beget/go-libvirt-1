@@ -519,6 +519,10 @@ type RemoteVcpuInfo struct {
 	Cpu     int
 }
 
+type RemoteTypedParam struct {
+	Field string
+}
+
 type RemoteNodeGetCpuStats struct {
 	Field string
 	Value uint64

@@ -1,13 +1,13 @@
 package main
 
 import (
-	"image/png"
+	"fmt"
 	"log"
 	"net"
 	"os"
 	"time"
 
-	"github.com/spakin/netpbm"
+	libvirt "github.com/vtolstov/go-libvirt"
 	client "github.com/vtolstov/go-libvirt/client"
 )
 
@@ -26,25 +26,37 @@ func main() {
 		log.Fatalf("failed: %v", err)
 	}
 
-	stream, _, err := domain.Screenshot(0, 0)
+	stats, err := l.GetDomainsStats([]*client.Domain{domain}, libvirt.DomainStatsState|libvirt.DomainStatsBlock, libvirt.GetDomainsStatsActive)
 	if err != nil {
 		log.Fatalf("failed: %v", err)
 	}
-	defer stream.Close()
-	img, err := netpbm.Decode(stream, &netpbm.DecodeOptions{
-		Target: netpbm.PPM,
-		Exact:  true})
-	if err != nil {
-		log.Fatalf("failed: %#+v %v", img, err)
+
+	for _, st := range stats {
+		fmt.Printf("%#+v\n", st)
 	}
 
-	f, err := os.Create("img.png")
-	defer f.Close()
+	/*
+		stream, _, err := domain.Screenshot(0, 0)
+		if err != nil {
+			log.Fatalf("failed: %v", err)
+		}
+		defer stream.Close()
+		img, err := netpbm.Decode(stream, &netpbm.DecodeOptions{
+			Target: netpbm.PPM,
+			Exact:  true})
+		if err != nil {
+			log.Fatalf("failed: %#+v %v", img, err)
+		}
 
-	err = png.Encode(f, img)
-	if err != nil {
-		log.Fatalf("failed: %v", err)
-	}
+		f, err := os.Create("img.png")
+		defer f.Close()
+
+		err = png.Encode(f, img)
+		if err != nil {
+			log.Fatalf("failed: %v", err)
+		}
+	*/
+
 	if err = l.Close(); err != nil {
 		panic(err)
 	}
