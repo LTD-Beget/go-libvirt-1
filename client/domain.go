@@ -150,8 +150,8 @@ func (d *Domain) Migrate(dst string, x string, flags libvirt.DomainMigrateFlags)
 
 	req := libvirt.RemoteDomainMigratePerform3Req{
 		Domain: d.RemoteDomain,
-		Xmlin:  x,
-		Uri:    dst,
+		Xmlin:  &x,
+		Uri:    &dst,
 		Flags:  uint64(flags),
 	}
 
@@ -509,18 +509,10 @@ func (d *Domain) BlockInfo(path string, flags uint32) (*DomainBlockInfo, error) 
 
 // Console get console of the domain.
 func (d *Domain) Console(device string, flags libvirt.DomainConsoleFlags) (*Stream, error) {
-	type RemoteDomainOpenConsoleReq struct {
-		Domain  *libvirt.RemoteDomain
-		Flags1  uint32
-		DevName string
-		Flags2  uint32
-	}
-
-	req := RemoteDomainOpenConsoleReq{
+	req := libvirt.RemoteDomainOpenConsoleReq{
 		Domain:  d.RemoteDomain,
-		Flags1:  uint32(flags),
-		DevName: device,
-		Flags2:  uint32(flags)}
+		DevName: &device,
+		Flags:   uint32(flags)}
 
 	buf, err := encode(&req)
 	if err != nil {

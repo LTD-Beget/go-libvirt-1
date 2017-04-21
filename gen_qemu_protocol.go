@@ -34,12 +34,12 @@ type QemuDomainAgentCommandReq struct {
 }
 
 type QemuDomainAgentCommandRes struct {
-	Result *string
+	Result *string `xdr:"optional"`
 }
 
 type QemuConnectDomainMonitorEventRegisterReq struct {
 	Domain *RemoteDomain
-	Event  *string
+	Event  *string `xdr:"optional"`
 	Flags  uint32
 }
 
@@ -57,5 +57,5 @@ type QemuDomainMonitorEventMsg struct {
 	Event      string
 	Seconds    int64
 	Micros     uint32
-	Details    *string
+	Details    *string `xdr:"optional"`
 }

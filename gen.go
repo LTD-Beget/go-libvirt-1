@@ -148,7 +148,7 @@ func main() {
 					} else if strings.HasSuffix(vals[0], "nonnull_string") {
 						vartype = "string"
 					} else if strings.HasSuffix(vals[0], "remote_string") {
-						vartype = "*string"
+						vartype = "*string `xdr:\"optional\"`"
 					} else if strings.HasSuffix(vals[0], "_nwfilter") {
 						vartype = "*RemoteNwFilter"
 					} else if strings.HasSuffix(vals[0], "_interface") {
@@ -255,7 +255,7 @@ func main() {
 						} else if strings.HasSuffix(vals[0], "nonnull_string") {
 							vartype = "string"
 						} else if strings.HasSuffix(vals[0], "remote_string") {
-							vartype = "*string"
+							vartype = "*string `xdr:\"optional\"`"
 						} else if strings.HasSuffix(vals[0], "_nwfilter") {
 							vartype = "*RemoteNwFilter"
 						} else if strings.HasSuffix(vals[0], "_interface") {
@@ -365,7 +365,7 @@ func main() {
 						} else if strings.HasSuffix(vals[0], "_nonnull_string") {
 							vartype = "string"
 						} else if strings.HasSuffix(vals[0], "remote_string") {
-							vartype = "*string"
+							vartype = "*string `xdr:\"optional\"`"
 						} else if strings.HasSuffix(vals[0], "_nwfilter") {
 							vartype = "*RemoteNwFilter"
 						} else if strings.HasSuffix(vals[0], "_interface") {

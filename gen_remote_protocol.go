@@ -501,12 +501,12 @@ type RemoteDomainSnapshot struct {
 type RemoteError struct {
 	Code     int
 	DomainID int
-	Message  *string
+	Message  *string `xdr:"optional"`
 	Level    int
 	Domain   *RemoteDomain
-	Str1     *string
-	Str2     *string
-	Str3     *string
+	Str1     *string `xdr:"optional"`
+	Str2     *string `xdr:"optional"`
+	Str3     *string `xdr:"optional"`
 	Int1     int
 	Int2     int
 	Network  *RemoteNetwork
@@ -539,7 +539,7 @@ type RemoteDomainDiskError struct {
 }
 
 type RemoteConnectOpenReq struct {
-	Name  *string
+	Name  *string `xdr:"optional"`
 	Flags uint32
 }
 
@@ -580,7 +580,7 @@ type RemoteConnectGetUriRes struct {
 }
 
 type RemoteConnectGetMaxVcpusReq struct {
-	Type *string
+	Type *string `xdr:"optional"`
 }
 
 type RemoteConnectGetMaxVcpusRes struct {
@@ -603,10 +603,10 @@ type RemoteConnectGetCapabilitiesRes struct {
 }
 
 type RemoteConnectGetDomainCapabilitiesReq struct {
-	Emulatorbin *string
-	Arch        *string
-	Machine     *string
-	Virttype    *string
+	Emulatorbin *string `xdr:"optional"`
+	Arch        *string `xdr:"optional"`
+	Machine     *string `xdr:"optional"`
+	Virttype    *string `xdr:"optional"`
 	Flags       uint32
 }
 
@@ -1011,7 +1011,7 @@ type RemoteDomainSaveReq struct {
 type RemoteDomainSaveFlagsReq struct {
 	Domain *RemoteDomain
 	To     string
-	XML    *string
+	XML    *string `xdr:"optional"`
 	Flags  uint32
 }
 
@@ -1021,7 +1021,7 @@ type RemoteDomainRestoreReq struct {
 
 type RemoteDomainRestoreFlagsReq struct {
 	From  string
-	XML   *string
+	XML   *string `xdr:"optional"`
 	Flags uint32
 }
 
@@ -1060,7 +1060,7 @@ type RemoteDomainScreenshotReq struct {
 }
 
 type RemoteDomainScreenshotRes struct {
-	Mime *string
+	Mime *string `xdr:"optional"`
 }
 
 type RemoteDomainGetXmlDescReq struct {
@@ -1073,15 +1073,15 @@ type RemoteDomainGetXmlDescRes struct {
 }
 
 type RemoteDomainMigratePrepareReq struct {
-	UriIn    *string
+	UriIn    *string `xdr:"optional"`
 	Flags    uint64
-	Dname    *string
+	Dname    *string `xdr:"optional"`
 	Resource uint64
 }
 
 type RemoteDomainMigratePrepareRes struct {
 	Cookie []byte
-	UriOut *string
+	UriOut *string `xdr:"optional"`
 }
 
 type RemoteDomainMigratePerformReq struct {
@@ -1089,7 +1089,7 @@ type RemoteDomainMigratePerformReq struct {
 	Cookie   []byte
 	Uri      string
 	Flags    uint64
-	Dname    *string
+	Dname    *string `xdr:"optional"`
 	Resource uint64
 }
 
@@ -1105,16 +1105,16 @@ type RemoteDomainMigrateFinishRes struct {
 }
 
 type RemoteDomainMigratePrepare2Req struct {
-	UriIn    *string
+	UriIn    *string `xdr:"optional"`
 	Flags    uint64
-	Dname    *string
+	Dname    *string `xdr:"optional"`
 	Resource uint64
 	XML      string
 }
 
 type RemoteDomainMigratePrepare2Res struct {
 	Cookie []byte
-	UriOut *string
+	UriOut *string `xdr:"optional"`
 }
 
 type RemoteDomainMigrateFinish2Req struct {
@@ -1391,16 +1391,16 @@ type RemoteDomainSetAutostartReq struct {
 type RemoteDomainSetMetadataReq struct {
 	Domain   *RemoteDomain
 	Type     int
-	Metadata *string
-	Key      *string
-	Uri      *string
+	Metadata *string `xdr:"optional"`
+	Key      *string `xdr:"optional"`
+	Uri      *string `xdr:"optional"`
 	Flags    uint32
 }
 
 type RemoteDomainGetMetadataReq struct {
 	Domain *RemoteDomain
 	Type   int
-	Uri    *string
+	Uri    *string `xdr:"optional"`
 	Flags  uint32
 }
 
@@ -1445,7 +1445,7 @@ type RemoteDomainBlockPullReq struct {
 type RemoteDomainBlockRebaseReq struct {
 	Domain    *RemoteDomain
 	Path      string
-	Base      *string
+	Base      *string `xdr:"optional"`
 	Bandwidth uint64
 	Flags     uint32
 }
@@ -1460,8 +1460,8 @@ type RemoteDomainBlockCopyReq struct {
 type RemoteDomainBlockCommitReq struct {
 	Domain    *RemoteDomain
 	Disk      string
-	Base      *string
-	Top       *string
+	Base      *string `xdr:"optional"`
+	Top       *string `xdr:"optional"`
 	Bandwidth uint64
 	Flags     uint32
 }
@@ -1474,7 +1474,7 @@ type RemoteDomainSetBlockIoTuneReq struct {
 
 type RemoteDomainGetBlockIoTuneReq struct {
 	Domain  *RemoteDomain
-	Disk    *string
+	Disk    *string `xdr:"optional"`
 	Nparams int
 	Flags   uint32
 }
@@ -1805,7 +1805,7 @@ type RemoteConnectListDefinedStoragePoolsRes struct {
 
 type RemoteConnectFindStoragePoolSourcesReq struct {
 	Type    string
-	SrcSpec *string
+	SrcSpec *string `xdr:"optional"`
 	Flags   uint32
 }
 
@@ -2040,7 +2040,7 @@ type RemoteStorageVolResizeReq struct {
 }
 
 type RemoteNodeNumOfDevicesReq struct {
-	Cap   *string
+	Cap   *string `xdr:"optional"`
 	Flags uint32
 }
 
@@ -2049,7 +2049,7 @@ type RemoteNodeNumOfDevicesRes struct {
 }
 
 type RemoteNodeListDevicesReq struct {
-	Cap      *string
+	Cap      *string `xdr:"optional"`
 	Maxnames int
 	Flags    uint32
 }
@@ -2090,7 +2090,7 @@ type RemoteNodeDeviceGetParentReq struct {
 }
 
 type RemoteNodeDeviceGetParentRes struct {
-	Parent *string
+	Parent *string `xdr:"optional"`
 }
 
 type RemoteNodeDeviceNumOfCapsReq struct {
@@ -2116,7 +2116,7 @@ type RemoteNodeDeviceDettachReq struct {
 
 type RemoteNodeDeviceDetachFlagsReq struct {
 	Name       string
-	DriverName *string
+	DriverName *string `xdr:"optional"`
 	Flags      uint32
 }
 
@@ -2248,7 +2248,7 @@ type RemoteSecretLookupByUsageRes struct {
 
 type RemoteDomainMigratePrepareTunnelReq struct {
 	Flags    uint64
-	Dname    *string
+	Dname    *string `xdr:"optional"`
 	Resource uint64
 	XML      string
 }
@@ -2525,8 +2525,8 @@ type RemoteDomainEventCallbackBlockJobMsg struct {
 
 type RemoteDomainEventDiskChangeMsg struct {
 	Domain     *RemoteDomain
-	OldSrcPath *string
-	NewSrcPath *string
+	OldSrcPath *string `xdr:"optional"`
+	NewSrcPath *string `xdr:"optional"`
 	DevAlias   string
 	Reason     int
 }
@@ -2752,13 +2752,13 @@ type RemoteDomainSnapshotDeleteReq struct {
 
 type RemoteDomainOpenConsoleReq struct {
 	Domain  *RemoteDomain
-	DevName *string
+	DevName *string `xdr:"optional"`
 	Flags   uint32
 }
 
 type RemoteDomainOpenChannelReq struct {
 	Domain *RemoteDomain
-	Name   *string
+	Name   *string `xdr:"optional"`
 	Flags  uint32
 }
 
@@ -2788,9 +2788,9 @@ type RemoteDomainGetStateRes struct {
 
 type RemoteDomainMigrateBegin3Req struct {
 	Domain   *RemoteDomain
-	Xmlin    *string
+	Xmlin    *string `xdr:"optional"`
 	Flags    uint64
-	Dname    *string
+	Dname    *string `xdr:"optional"`
 	Resource uint64
 }
 
@@ -2801,22 +2801,22 @@ type RemoteDomainMigrateBegin3Res struct {
 
 type RemoteDomainMigratePrepare3Req struct {
 	CookieIn []byte
-	UriIn    *string
+	UriIn    *string `xdr:"optional"`
 	Flags    uint64
-	Dname    *string
+	Dname    *string `xdr:"optional"`
 	Resource uint64
 	XML      string
 }
 
 type RemoteDomainMigratePrepare3Res struct {
 	CookieOut []byte
-	UriOut    *string
+	UriOut    *string `xdr:"optional"`
 }
 
 type RemoteDomainMigratePrepareTunnel3Req struct {
 	CookieIn []byte
 	Flags    uint64
-	Dname    *string
+	Dname    *string `xdr:"optional"`
 	Resource uint64
 	XML      string
 }
@@ -2827,12 +2827,12 @@ type RemoteDomainMigratePrepareTunnel3Res struct {
 
 type RemoteDomainMigratePerform3Req struct {
 	Domain   *RemoteDomain
-	Xmlin    *string
+	Xmlin    *string `xdr:"optional"`
 	CookieIn []byte
-	Dconnuri *string
-	Uri      *string
+	Dconnuri *string `xdr:"optional"`
+	Uri      *string `xdr:"optional"`
 	Flags    uint64
-	Dname    *string
+	Dname    *string `xdr:"optional"`
 	Resource uint64
 }
 
@@ -2843,8 +2843,8 @@ type RemoteDomainMigratePerform3Res struct {
 type RemoteDomainMigrateFinish3Req struct {
 	Dname     string
 	CookieIn  []byte
-	Dconnuri  *string
-	Uri       *string
+	Dconnuri  *string `xdr:"optional"`
+	Uri       *string `xdr:"optional"`
 	Flags     uint64
 	Cancelled int
 }
@@ -3023,7 +3023,7 @@ type RemoteNodeGetCpuMapRes struct {
 
 type RemoteDomainFstrimReq struct {
 	Domain     *RemoteDomain
-	MountPoint *string
+	MountPoint *string `xdr:"optional"`
 	Minimum    uint64
 	Flags      uint32
 }
@@ -3062,7 +3062,7 @@ type RemoteDomainMigratePrepare3ParamsReq struct {
 
 type RemoteDomainMigratePrepare3ParamsRes struct {
 	CookieOut []byte
-	UriOut    *string
+	UriOut    *string `xdr:"optional"`
 }
 
 type RemoteDomainMigratePrepareTunnel3ParamsReq struct {
@@ -3076,7 +3076,7 @@ type RemoteDomainMigratePrepareTunnel3ParamsRes struct {
 
 type RemoteDomainMigratePerform3ParamsReq struct {
 	Domain   *RemoteDomain
-	Dconnuri *string
+	Dconnuri *string `xdr:"optional"`
 	CookieIn []byte
 	Flags    uint32
 }
@@ -3125,7 +3125,7 @@ type RemoteDomainEventBlockThresholdMsg struct {
 	CallbackID int
 	Domain     *RemoteDomain
 	Device     string
-	Path       *string
+	Path       *string `xdr:"optional"`
 	Threshold  uint64
 	Excess     uint64
 }
@@ -3273,17 +3273,17 @@ type RemoteNetworkDhcpLease struct {
 	Iface      string
 	Expirytime int64
 	Type       int
-	Mac        *string
-	Iaid       *string
+	Mac        *string `xdr:"optional"`
+	Iaid       *string `xdr:"optional"`
 	Ipaddr     string
 	Prefix     uint32
-	Hostname   *string
-	Clientid   *string
+	Hostname   *string `xdr:"optional"`
+	Clientid   *string `xdr:"optional"`
 }
 
 type RemoteNetworkGetDhcpLeasesReq struct {
 	Network     *RemoteNetwork
-	Mac         *string
+	Mac         *string `xdr:"optional"`
 	NeedResults int
 	Flags       uint32
 }
@@ -3340,7 +3340,7 @@ type RemoteDomainIpAddr struct {
 
 type RemoteDomainInterface struct {
 	Name   string
-	Hwaddr *string
+	Hwaddr *string `xdr:"optional"`
 	Addrs  []RemoteDomainIpAddr
 }
 
@@ -3356,14 +3356,14 @@ type RemoteDomainInterfaceAddressesRes struct {
 
 type RemoteDomainSetUserPasswordReq struct {
 	Domain   *RemoteDomain
-	User     *string
-	Password *string
+	User     *string `xdr:"optional"`
+	Password *string `xdr:"optional"`
 	Flags    uint32
 }
 
 type RemoteDomainRenameReq struct {
 	Domain  *RemoteDomain
-	NewName *string
+	NewName *string `xdr:"optional"`
 	Flags   uint32
 }
 
@@ -3419,7 +3419,7 @@ type RemoteDomainEventCallbackMetadataChangeMsg struct {
 	CallbackID int
 	Domain     *RemoteDomain
 	Type       int
-	Nsuri      *string
+	Nsuri      *string `xdr:"optional"`
 }
 
 type RemoteConnectSecretEventRegisterAnyReq struct {
