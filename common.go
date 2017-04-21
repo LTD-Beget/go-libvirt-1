@@ -6,9 +6,9 @@ import "fmt"
 //go:generate goimports -w gen_lxc_protocol.go gen_qemu_protocol.go gen_remote_protocol.go gen_virkeepaliveprotocol.go gen_virnetprotocol.go
 //go:generate stringer -type=RemoteProcedure,MessageStatus,MessageType -output internal_string.go
 //go:generate stringer -type=StoragePoolsFlags,StorageXmlFlags -output storagepool_string.go
-//go:generate stringer -type=StorageVolumeDownloadFlags,StorageVolumeUploadFlags,StorageVolumeCreateFlags,StorageVolumeDeleteFlags,StorageVolumeResizeFlags,StorageVolumeWipeAlgFlags -output storagevolume_string.go
+//go:generate stringer -type=StorageVolumeInfoFlags,StorageVolumeDownloadFlags,StorageVolumeUploadFlags,StorageVolumeCreateFlags,StorageVolumeDeleteFlags,StorageVolumeResizeFlags,StorageVolumeWipeAlgFlags -output storagevolume_string.go
 //go:generate stringer -type=DomainSnapshotCreateFlags,DomainSnapshotDeleteFlags,DomainSnapshotListFlags,DomainSnapshotRevertFlags -output domainsnapshot_string.go
-//go:generate stringer -type=DomainStatsTypes,ListDomainsFlags,GetDomainsStatsFlags,DomainAffectFlags,DomainDeviceModifyFlags,DomainBlockResizeFlags,DomainXMLFlags,DomainCreateFlags,DomainRebootFlags,DomainShutdownFlags,DomainMigrateFlags,DomainUndefineFlags,DomainDefineXMLFlags,DomainDestroyFlags -output domain_string.go
+//go:generate stringer -type=DomainConsoleFlags,DomainStatsTypes,ListDomainsFlags,GetDomainsStatsFlags,DomainAffectFlags,DomainDeviceModifyFlags,DomainBlockResizeFlags,DomainXMLFlags,DomainCreateFlags,DomainRebootFlags,DomainShutdownFlags,DomainMigrateFlags,DomainUndefineFlags,DomainDefineXMLFlags,DomainDestroyFlags -output domain_string.go
 //go:generate stringer -type=TypedParamTypes  -output=consts_string.go
 
 type UUID [16]byte
@@ -126,6 +126,19 @@ const (
 
 	// DomainAffectFlagConfig affect only config.
 	DomainAffectFlagConfig
+)
+
+// DomainConsoleFlags
+type DomainConsoleFlags uint32
+
+const (
+	_ DomainConsoleFlags = iota
+
+	// DomainConsoleFlagForce
+	DomainConsoleFlagForce
+
+	// DomainConsoleFlagSafe
+	DomainConsoleFlagSafe
 )
 
 // StoragePoolsFlags specifies storage pools to list.
@@ -272,6 +285,17 @@ type StorageXmlFlags uint32
 const (
 	// StorageXmlInactive dump inactive pool/volume information
 	StorageXmlInactive StorageXmlFlags = 1
+)
+
+// StorageVolumeInfoFlags specifies options when performing a volume info.
+type StorageVolumeInfoFlags uint32
+
+const (
+	// StorageVolumeInfoFlagAllocation
+	StorageVolumeInfoFlagAllocation StorageVolumeInfoFlags = iota
+
+	// StorageVolumeInfoFlagPhysical
+	StorageVolumeInfoFlagPhysical
 )
 
 // StorageVolumeDownloadFlags specifies options when performing a volume download.

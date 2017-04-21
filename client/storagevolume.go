@@ -7,6 +7,10 @@ import (
 	libvirt "github.com/vtolstov/go-libvirt"
 )
 
+type StorageVolumeInfo struct {
+	libvirt.RemoteStorageVolGetInfoFlagsRes
+}
+
 // StorageVolume represents a volume as seen by libvirt.
 type StorageVolume struct {
 	*libvirt.RemoteStorageVolume
@@ -210,4 +214,33 @@ func (v *StorageVolume) Upload(offset uint64, length uint64, flags libvirt.Stora
 	v.l.addStream(r.Header.Serial, s)
 
 	return s, nil
+}
+
+// Info bout volume.
+func (v *StorageVolume) Info(flags libvirt.StorageVolumeInfoFlags) (*StorageVolumeInfo, error) {
+	req := libvirt.RemoteStorageVolGetInfoFlagsReq{Vol: v.RemoteStorageVolume, Flags: uint32(flags)}
+	res := libvirt.RemoteStorageVolGetInfoFlagsRes{}
+
+	buf, err := encode(&req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := v.l.send(libvirt.RemoteProcStorageVolGetInfoFlags, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
+	if err != nil {
+		return nil, err
+	}
+
+	r := <-resp
+	if r.Header.Status != libvirt.MessageStatusOK {
+		return nil, decodeError(r.Payload)
+	}
+
+	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
+	_, err = dec.Decode(&res)
+	if err != nil {
+		return nil, err
+	}
+
+	return &StorageVolumeInfo{RemoteStorageVolGetInfoFlagsRes: res}, nil
 }

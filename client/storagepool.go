@@ -9,6 +9,10 @@ import (
 	libvirt "github.com/vtolstov/go-libvirt"
 )
 
+type StoragePoolInfo struct {
+	libvirt.RemoteStoragePoolGetInfoRes
+}
+
 // StoragePool represents a storage pool as seen by libvirt.
 type StoragePool struct {
 	*libvirt.RemoteStoragePool
@@ -296,6 +300,35 @@ func (p *StoragePool) StorageVolumeCreateXMLFrom(x string, v *StorageVolume, fla
 
 	vol := &StorageVolume{RemoteStorageVolume: res.Vol, l: p.l}
 	return vol, nil
+}
+
+// Info about pool.
+func (p *StoragePool) Info() (*StoragePoolInfo, error) {
+	req := libvirt.RemoteStoragePoolGetInfoReq{Pool: p.RemoteStoragePool}
+	res := libvirt.RemoteStoragePoolGetInfoRes{}
+
+	buf, err := encode(&req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := p.l.send(libvirt.RemoteProcStoragePoolGetInfo, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
+	if err != nil {
+		return nil, err
+	}
+
+	r := <-resp
+	if r.Header.Status != libvirt.MessageStatusOK {
+		return nil, decodeError(r.Payload)
+	}
+
+	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
+	_, err = dec.Decode(&res)
+	if err != nil {
+		return nil, err
+	}
+
+	return &StoragePoolInfo{RemoteStoragePoolGetInfoRes: res}, nil
 }
 
 // StorageVolumeLookupByName returns a volume as seen by libvirt.

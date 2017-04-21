@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"net"
 	"os"
 	"time"
+
+	"golang.org/x/crypto/ssh/terminal"
 
 	libvirt "github.com/vtolstov/go-libvirt"
 	client "github.com/vtolstov/go-libvirt/client"
@@ -25,22 +28,47 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed: %v", err)
 	}
-
-	stats, err := l.GetDomainsStats([]*client.Domain{domain}, libvirt.DomainStatsState|libvirt.DomainStatsBlock, libvirt.GetDomainsStatsActive)
+	stream, err := domain.Console("serial0", libvirt.DomainConsoleFlagForce)
 	if err != nil {
 		log.Fatalf("failed: %v", err)
 	}
 
-	for _, st := range stats {
-		fmt.Printf("%#+v\n", st)
-	}
+	conreader := bufio.NewReader(os.Stdin)
+	r := bufio.NewReader(stream)
+	w := bufio.NewWriter(stream)
+	rw := bufio.NewReadWriter(r, w)
 
+	term := terminal.NewTerminal(rw, "> ")
+	go func() {
+		for {
+			text, _ := conreader.ReadString('\n')
+			_, err := term.Write([]byte(text))
+			w.Flush()
+			if err != nil {
+				fmt.Printf("err %s\n", err.Error())
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			text, err := term.ReadLine()
+			if err != nil {
+				time.Sleep(1 * time.Second)
+				//fmt.Printf("err %s\n", err.Error())
+			}
+			if text != "" {
+				fmt.Printf("%s", text)
+			}
+		}
+	}()
+
+	select {}
 	/*
 		stream, _, err := domain.Screenshot(0, 0)
 		if err != nil {
 			log.Fatalf("failed: %v", err)
 		}
-		defer stream.Close()
 		img, err := netpbm.Decode(stream, &netpbm.DecodeOptions{
 			Target: netpbm.PPM,
 			Exact:  true})
@@ -55,8 +83,10 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed: %v", err)
 		}
+
 	*/
 
+	stream.Close()
 	if err = l.Close(); err != nil {
 		panic(err)
 	}

@@ -10,6 +10,10 @@ import (
 	libvirt "github.com/vtolstov/go-libvirt"
 )
 
+type DomainBlockInfo struct {
+	libvirt.RemoteDomainGetBlockInfoRes
+}
+
 // Domain represents a domain as seen by libvirt.
 type Domain struct {
 	*libvirt.RemoteDomain
@@ -469,6 +473,79 @@ func (d *Domain) Reset(flags uint32) error {
 	}
 
 	return nil
+}
+
+// BlockInfo block info.
+func (d *Domain) BlockInfo(path string, flags uint32) (*DomainBlockInfo, error) {
+	req := libvirt.RemoteDomainGetBlockInfoReq{
+		Domain: d.RemoteDomain,
+		Path:   path,
+		Flags:  uint32(flags)}
+	res := libvirt.RemoteDomainGetBlockInfoRes{}
+
+	buf, err := encode(&req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := d.l.send(libvirt.RemoteProcDomainGetBlockInfo, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
+	if err != nil {
+		return nil, err
+	}
+
+	r := <-resp
+	if r.Header.Status != libvirt.MessageStatusOK {
+		return nil, decodeError(r.Payload)
+	}
+
+	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
+	_, err = dec.Decode(&res)
+	if err != nil {
+		return nil, err
+	}
+
+	return &DomainBlockInfo{RemoteDomainGetBlockInfoRes: res}, nil
+}
+
+// Console get console of the domain.
+func (d *Domain) Console(device string, flags libvirt.DomainConsoleFlags) (*Stream, error) {
+	type RemoteDomainOpenConsoleReq struct {
+		Domain  *libvirt.RemoteDomain
+		Flags1  uint32
+		DevName string
+		Flags2  uint32
+	}
+
+	req := RemoteDomainOpenConsoleReq{
+		Domain:  d.RemoteDomain,
+		Flags1:  uint32(flags),
+		DevName: device,
+		Flags2:  uint32(flags)}
+
+	buf, err := encode(&req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := d.l.send(libvirt.RemoteProcDomainOpenConsole, 9, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
+	if err != nil {
+		return nil, err
+	}
+
+	r := <-resp
+	if r.Header.Status != libvirt.MessageStatusOK {
+		return nil, decodeError(r.Payload)
+	}
+	s, err := d.l.StreamNew()
+	if err != nil {
+		return nil, err
+	}
+
+	s.serial = r.Header.Serial
+	s.procedure = libvirt.RemoteProcDomainOpenConsole
+	d.l.addStream(r.Header.Serial, s)
+
+	return s, nil
 }
 
 // Screenshot screenshot the domain screen.

@@ -10,7 +10,8 @@ import (
 // Stream represents a stream in ibvirt.
 type Stream struct {
 	//rwbuf     []byte
-	buf       *bytes.Buffer
+	rbuf      *bytes.Buffer
+	wbuf      *bytes.Buffer
 	procedure libvirt.RemoteProcedure
 	serial    uint32
 	l         *Libvirt
@@ -19,18 +20,21 @@ type Stream struct {
 	done      chan bool
 	msg       chan libvirt.Message
 	err       error
+	//	rm        sync.Mutex
+	//	wm        sync.Mutex
 }
 
 // StreamNew creates new stream.
 func (l *Libvirt) StreamNew() (*Stream, error) {
 	s := &Stream{
 		l:    l,
-		buf:  bytes.NewBuffer(nil),
+		err:  io.EOF,
+		rbuf: bytes.NewBuffer(nil),
+		wbuf: bytes.NewBuffer(nil),
 		r:    make(chan []byte),
 		w:    make(chan []byte),
 		done: make(chan bool),
 		msg:  make(chan libvirt.Message),
-		//	rwbuf: make([]byte, libvirt.NetMessageLegacyPayloadMax),
 	}
 	go s.io()
 
@@ -103,26 +107,23 @@ func (s *Stream) Finish() error {
 // Read reads from stream
 func (s *Stream) Read(p []byte) (int, error) {
 	var n int
-	for {
-		if s.buf.Len() == 0 {
-			buf := <-s.r
-			s.buf.Write(buf)
-		}
-		c, _ := s.buf.Read(p[n:])
-		n += c
-		if n >= len(p) || s.err != nil {
-			break
-		}
+	if s.rbuf.Len() == 0 {
+		buf := <-s.r
+		_, _ = s.rbuf.Write(buf)
 	}
+	n, _ = s.rbuf.Read(p)
 	return n, s.err
 }
 
 // Write writes to stream
 func (s *Stream) Write(p []byte) (int, error) {
-	c, _ := s.buf.Write(p)
-	defer s.buf.Reset()
-	_, err := s.l.send(s.procedure, s.serial, libvirt.MessageTypeStream, libvirt.RemoteProgram, libvirt.MessageStatusContinue, s.buf)
-	return c, err
+	if len(p) > 0 {
+		c, _ := s.wbuf.Write(p)
+		defer s.wbuf.Reset()
+		_, err := s.l.send(s.procedure, s.serial, libvirt.MessageTypeStream, libvirt.RemoteProgram, libvirt.MessageStatusContinue, s.wbuf)
+		return c, err
+	}
+	return 0, nil
 }
 
 // Close closes stream, to implement io.Closer interface

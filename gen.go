@@ -145,8 +145,10 @@ func main() {
 						vartype = "*RemoteStorageVolume"
 					} else if strings.HasSuffix(vals[0], "_storage_pool") {
 						vartype = "*RemoteStoragePool"
-					} else if strings.HasSuffix(vals[0], "_string") {
+					} else if strings.HasSuffix(vals[0], "nonnull_string") {
 						vartype = "string"
+					} else if strings.HasSuffix(vals[0], "remote_string") {
+						vartype = "*string"
 					} else if strings.HasSuffix(vals[0], "_nwfilter") {
 						vartype = "*RemoteNwFilter"
 					} else if strings.HasSuffix(vals[0], "_interface") {
@@ -250,8 +252,10 @@ func main() {
 							vartype = "*RemoteStorageVolume"
 						} else if strings.HasSuffix(vals[0], "_storage_pool") {
 							vartype = "*RemoteStoragePool"
-						} else if strings.HasSuffix(vals[0], "_string") {
+						} else if strings.HasSuffix(vals[0], "nonnull_string") {
 							vartype = "string"
+						} else if strings.HasSuffix(vals[0], "remote_string") {
+							vartype = "*string"
 						} else if strings.HasSuffix(vals[0], "_nwfilter") {
 							vartype = "*RemoteNwFilter"
 						} else if strings.HasSuffix(vals[0], "_interface") {
@@ -358,8 +362,10 @@ func main() {
 							vartype = "*RemoteStorageVolume"
 						} else if strings.HasSuffix(vals[0], "_storage_pool") {
 							vartype = "*RemoteStoragePool"
-						} else if strings.HasSuffix(vals[0], "_string") {
+						} else if strings.HasSuffix(vals[0], "_nonnull_string") {
 							vartype = "string"
+						} else if strings.HasSuffix(vals[0], "remote_string") {
+							vartype = "*string"
 						} else if strings.HasSuffix(vals[0], "_nwfilter") {
 							vartype = "*RemoteNwFilter"
 						} else if strings.HasSuffix(vals[0], "_interface") {
