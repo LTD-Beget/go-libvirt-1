@@ -26,6 +26,10 @@ type DomainStatsRecord struct {
 	Params map[string]interface{}
 }
 
+type DomainInfo struct {
+	libvirt.RemoteDomainGetInfoRes
+}
+
 // DomainEventDeregisterAny deregister for domain events.
 func (l *Libvirt) DomainEventDeregisterAny(cids []uint32) error {
 	for _, cid := range cids {
@@ -132,8 +136,8 @@ func (l *Libvirt) ListAllDomains(flags libvirt.ListDomainsFlags) ([]*Domain, err
 	return domains, nil
 }
 
-// GetDomainsStats returns a stats for all specified domains managed by libvirt.
-func (l *Libvirt) GetDomainsStats(domains []*Domain, stats libvirt.DomainStatsTypes, flags libvirt.GetDomainsStatsFlags) ([]DomainStatsRecord, error) {
+// GetAllDomainStats returns a stats for all specified domains managed by libvirt.
+func (l *Libvirt) GetAllDomainStats(domains []*Domain, stats libvirt.DomainStatsTypes, flags libvirt.GetDomainsStatsFlags) ([]DomainStatsRecord, error) {
 	var ds []*libvirt.RemoteDomain
 	for _, domain := range domains {
 		ds = append(ds, domain.RemoteDomain)
@@ -691,6 +695,35 @@ func (d *Domain) Shutdown(flags libvirt.DomainShutdownFlags) error {
 	}
 
 	return nil
+}
+
+// Info returns a domain's info.
+func (d *Domain) Info() (*DomainInfo, error) {
+	req := libvirt.RemoteDomainGetInfoReq{Domain: d.RemoteDomain}
+	res := libvirt.RemoteDomainGetInfoRes{}
+
+	buf, err := encode(&req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := d.l.send(libvirt.RemoteProcDomainGetXmlDesc, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
+	if err != nil {
+		return nil, err
+	}
+
+	r := <-resp
+	if r.Header.Status != libvirt.MessageStatusOK {
+		return nil, decodeError(r.Payload)
+	}
+
+	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
+	_, err = dec.Decode(&res)
+	if err != nil {
+		return nil, err
+	}
+
+	return &DomainInfo{RemoteDomainGetInfoRes: res}, nil
 }
 
 // XML returns a domain's raw XML definition, akin to `virsh dumpxml <domain>`.
