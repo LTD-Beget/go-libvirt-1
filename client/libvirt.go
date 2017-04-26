@@ -25,6 +25,10 @@ type Libvirt struct {
 	sm      sync.Mutex
 	streams map[uint32]*Stream
 
+	// events
+	em       sync.Mutex
+	messages map[uint32]chan *libvirt.Event
+
 	// next request serial number
 	s uint32
 }
@@ -105,6 +109,7 @@ func New(conn net.Conn) *Libvirt {
 		w:         bufio.NewWriter(conn),
 		callbacks: make(map[uint32]chan libvirt.Message),
 		streams:   make(map[uint32]*Stream),
+		messages:  make(map[uint32]chan *libvirt.Event),
 	}
 
 	go l.listen()

@@ -26,6 +26,77 @@ type DomainStatsRecord struct {
 	Params map[string]interface{}
 }
 
+// DomainEventDeregisterAny deregister for domain events.
+func (l *Libvirt) DomainEventDeregisterAny(cids []uint32) error {
+	for _, cid := range cids {
+		req := libvirt.RemoteConnectDomainEventCallbackDeregisterAnyReq{CallbackID: int(cid)}
+
+		buf, err := encode(&req)
+		if err != nil {
+			return err
+		}
+
+		resp, err := l.send(libvirt.RemoteProcConnectDomainEventCallbackDeregisterAny, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
+		if err != nil {
+			return err
+		}
+
+		r := <-resp
+		if r.Header.Status != libvirt.MessageStatusOK {
+			return decodeError(r.Payload)
+		}
+
+		l.delEvent(cid)
+	}
+	return nil
+}
+
+// DomainEventRegisterAny register for domain events.
+func (l *Libvirt) DomainEventRegisterAny(d *Domain, c chan *libvirt.Event) ([]uint32, error) {
+	cids := []uint32{}
+
+	dom := &libvirt.RemoteDomain{}
+	if d != nil {
+		dom = d.RemoteDomain
+	}
+	req := libvirt.RemoteConnectDomainEventCallbackRegisterAnyReq{
+		Domain: dom,
+	}
+	res := libvirt.RemoteConnectDomainEventCallbackRegisterAnyRes{}
+
+	for evID := libvirt.EventIDTypes(0); evID < libvirt.DomainEventIDLast; evID++ {
+		req.EventID = int(evID)
+		buf, err := encode(&req)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := l.send(libvirt.RemoteProcConnectDomainEventCallbackRegisterAny, 0, libvirt.MessageTypeCall, libvirt.RemoteProgram, libvirt.MessageStatusOK, &buf)
+		if err != nil {
+			return nil, err
+		}
+
+		r := <-resp
+		if r.Header.Status != libvirt.MessageStatusOK {
+			err = decodeError(r.Payload)
+			if err == libvirt.ErrUnsupported {
+				continue
+			} else {
+				return nil, err
+			}
+		}
+
+		dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
+		_, err = dec.Decode(&res)
+		if err != nil {
+			return nil, err
+		}
+
+		l.addEvent(uint32(res.CallbackID), c)
+		cids = append(cids, uint32(res.CallbackID))
+	}
+	return cids, nil
+}
+
 // ListAllDomains returns a list of all domains managed by libvirt.
 func (l *Libvirt) ListAllDomains(flags libvirt.ListDomainsFlags) ([]*Domain, error) {
 	req := libvirt.RemoteConnectListAllDomainsReq{

@@ -8,7 +8,7 @@ import "fmt"
 //go:generate stringer -type=StoragePoolsFlags,StorageXmlFlags -output storagepool_string.go
 //go:generate stringer -type=StorageVolumeInfoFlags,StorageVolumeDownloadFlags,StorageVolumeUploadFlags,StorageVolumeCreateFlags,StorageVolumeDeleteFlags,StorageVolumeResizeFlags,StorageVolumeWipeAlgFlags -output storagevolume_string.go
 //go:generate stringer -type=DomainSnapshotCreateFlags,DomainSnapshotDeleteFlags,DomainSnapshotListFlags,DomainSnapshotRevertFlags -output domainsnapshot_string.go
-//go:generate stringer -type=DomainConsoleFlags,DomainStatsTypes,ListDomainsFlags,GetDomainsStatsFlags,DomainAffectFlags,DomainDeviceModifyFlags,DomainBlockResizeFlags,DomainXMLFlags,DomainCreateFlags,DomainRebootFlags,DomainShutdownFlags,DomainMigrateFlags,DomainUndefineFlags,DomainDefineXMLFlags,DomainDestroyFlags -output domain_string.go
+//go:generate stringer -type=EventIDTypes,DomainConsoleFlags,DomainStatsTypes,ListDomainsFlags,GetDomainsStatsFlags,DomainAffectFlags,DomainDeviceModifyFlags,DomainBlockResizeFlags,DomainXMLFlags,DomainCreateFlags,DomainRebootFlags,DomainShutdownFlags,DomainMigrateFlags,DomainUndefineFlags,DomainDefineXMLFlags,DomainDestroyFlags -output domain_string.go
 //go:generate stringer -type=TypedParamTypes  -output=consts_string.go
 
 type UUID [16]byte
@@ -17,6 +17,142 @@ type RemoteAuthType uint32
 
 // ErrUnsupported is returned if a procedure is not supported by libvirt
 var ErrUnsupported = fmt.Errorf("unsupported procedure requested")
+
+func LookupMsgTypeByProc(proc RemoteProcedure) interface{} {
+	var msg interface{} = nil
+
+	switch proc {
+	case RemoteProcDomainEventCallbackLifecycle:
+		msg = RemoteDomainEventCallbackLifecycleMsg{}
+	case RemoteProcDomainEventCallbackReboot:
+		msg = RemoteDomainEventCallbackRebootMsg{}
+	case RemoteProcDomainEventCallbackRtcChange:
+		msg = RemoteDomainEventCallbackRtcChangeMsg{}
+	case RemoteProcDomainEventCallbackWatchdog:
+		msg = RemoteDomainEventCallbackWatchdogMsg{}
+	case RemoteProcDomainEventCallbackIoError:
+		msg = RemoteDomainEventCallbackIoErrorMsg{}
+	case RemoteProcDomainEventCallbackGraphics:
+		msg = RemoteDomainEventCallbackGraphicsMsg{}
+	case RemoteProcDomainEventCallbackIoErrorReason:
+		msg = RemoteDomainEventCallbackIoErrorReasonMsg{}
+	case RemoteProcDomainEventCallbackControlError:
+		msg = RemoteDomainEventCallbackControlErrorMsg{}
+	case RemoteProcDomainEventCallbackBlockJob:
+		msg = RemoteDomainEventCallbackBlockJobMsg{}
+	case RemoteProcDomainEventCallbackDiskChange:
+		msg = RemoteDomainEventCallbackDiskChangeMsg{}
+	case RemoteProcDomainEventCallbackTrayChange:
+		msg = RemoteDomainEventCallbackTrayChangeMsg{}
+	case RemoteProcDomainEventCallbackPmwakeup:
+		msg = RemoteDomainEventCallbackPmwakeupMsg{}
+	case RemoteProcDomainEventCallbackPmsuspend:
+		msg = RemoteDomainEventCallbackPmsuspendMsg{}
+	case RemoteProcDomainEventCallbackBalloonChange:
+		msg = RemoteDomainEventCallbackBalloonChangeMsg{}
+	case RemoteProcDomainEventCallbackPmsuspendDisk:
+		msg = RemoteDomainEventCallbackPmsuspendDiskMsg{}
+	case RemoteProcDomainEventCallbackDeviceRemoved:
+		msg = RemoteDomainEventCallbackDeviceRemovedMsg{}
+	case RemoteProcDomainEventCallbackTunable:
+		msg = RemoteDomainEventCallbackTunableMsg{}
+	case RemoteProcDomainEventCallbackAgentLifecycle:
+		msg = RemoteDomainEventCallbackAgentLifecycleMsg{}
+	case RemoteProcDomainEventCallbackDeviceAdded:
+		msg = RemoteDomainEventCallbackDeviceAddedMsg{}
+	case RemoteProcDomainEventCallbackMigrationIteration:
+		msg = RemoteDomainEventCallbackMigrationIterationMsg{}
+	case RemoteProcDomainEventCallbackJobCompleted:
+		msg = RemoteDomainEventCallbackJobCompletedMsg{}
+	case RemoteProcDomainEventCallbackDeviceRemovalFailed:
+		msg = RemoteDomainEventCallbackDeviceRemovalFailedMsg{}
+	case RemoteProcDomainEventCallbackMetadataChange:
+		msg = RemoteDomainEventCallbackMetadataChangeMsg{}
+	default:
+		msg = nil
+	}
+	return msg
+}
+
+// EventTypes
+type EventIDTypes int
+
+const (
+	// DomainEventIDLifecycle lifecycle events
+	DomainEventIDLifecycle EventIDTypes = iota
+
+	// DomainEventIDReboot reboot events
+	DomainEventIDReboot
+
+	// DomainEventIDRtcChange
+	DomainEventIDRtcChange
+
+	// DomainEventIDWatchdog
+	DomainEventIDWatchdog
+
+	// DomainEventIDIOError
+	DomainEventIDIOError
+
+	// DomainEventIDGraphics
+	DomainEventIDGraphics
+
+	// DomainEventIDIOErrorReason
+	DomainEventIDIOErrorReason
+
+	// DomainEventIDControlError
+	DomainEventIDControlError
+
+	// DomainEventIDBlockJob
+	DomainEventIDBlockJob
+
+	// DomainEventIDDiskChange
+	DomainEventIDDiskChange
+
+	// DomainEventIDTrayChange
+	DomainEventIDTrayChange
+
+	// DomainEventIDPmWakeup
+	DomainEventIDPmWakeup
+
+	// DomainEventIDPmSuspend
+	DomainEventIDPmSuspend
+
+	// DomainEventIDBalloonChange
+	DomainEventIDBalloonChange
+
+	// DomainEventIDPmSuspendDisk
+	DomainEventIDPmSuspendDisk
+
+	// DomainEventIDDeviceRemoved
+	DomainEventIDDeviceRemoved
+
+	// DomainEventIDBlockJob2
+	DomainEventIDBlockJob2
+
+	// DomainEventIDTunable
+	DomainEventIDTunable
+
+	// DomainEventIDAgentLifecycle
+	DomainEventIDAgentLifecycle
+
+	// DomainEventIDDeviceAdded
+	DomainEventIDDeviceAdded
+
+	// DomainEventIDMigrationIteration
+	DomainEventIDMigrationIteration
+
+	// DomainEventIDJobCompleted
+	DomainEventIDJobCompleted
+
+	// DomainEventIDDeviceRemovalFailed
+	DomainEventIDDeviceRemovalFailed
+
+	// DomainEventIDMetadataChange
+	DomainEventIDMetadataChange
+
+	// DomainEventIDLast
+	DomainEventIDLast
+)
 
 // MessageType type of message
 type MessageType uint32
@@ -744,6 +880,11 @@ type Packet struct {
 	Header MessageHeader
 }
 
+type Event struct {
+	CallbackID uint32
+	Msg        interface{}
+}
+
 type Message struct {
 	Header  MessageHeader
 	Payload []byte
@@ -751,13 +892,4 @@ type Message struct {
 
 func NewMessage(hdr *MessageHeader, payload []byte) Message {
 	return Message{Payload: payload, Header: *hdr}
-}
-
-// Error response
-type Error struct {
-	Code     uint32
-	DomainID uint32
-	Padding  uint8
-	Message  string
-	Level    uint32
 }

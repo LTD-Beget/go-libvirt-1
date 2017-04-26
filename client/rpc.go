@@ -3,7 +3,6 @@ package client
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -123,7 +122,7 @@ func (l *Libvirt) callback(res libvirt.Message) {
 	l.deregister(res.Header.Serial)
 }
 
-// streamRead sends rpc responses to their respective caller without deregister
+// streamRead reads rpc responses to their respective caller without deregister
 func (l *Libvirt) streamRead(res libvirt.Message) {
 	l.sm.Lock()
 	s, ok := l.streams[res.Header.Serial]
@@ -133,12 +132,28 @@ func (l *Libvirt) streamRead(res libvirt.Message) {
 	}
 }
 
+// messageRead reads rpc responses to their respective caller without deregister
+func (l *Libvirt) messageRead(res libvirt.Message) {
+	event, err := decodeEvent(res)
+	if err != nil {
+		panic(err)
+	}
+	l.em.Lock()
+	s, ok := l.messages[event.CallbackID]
+	l.em.Unlock()
+	if ok {
+		s <- event
+	}
+}
+
 // route sends incoming packets to their listeners.
 func (l *Libvirt) route(h *libvirt.MessageHeader, payload []byte) {
 	//fmt.Printf("route %d %s\n", len(payload), h)
 	switch h.Type {
 	case libvirt.MessageTypeStream:
 		l.streamRead(libvirt.NewMessage(h, payload))
+	case libvirt.MessageTypeMessage:
+		l.messageRead(libvirt.NewMessage(h, payload))
 	default:
 		l.callback(libvirt.NewMessage(h, payload))
 	}
@@ -162,6 +177,20 @@ func (l *Libvirt) delStream(id uint32) {
 	//close(l.streams[id].done)
 	delete(l.streams, id)
 	l.sm.Unlock()
+}
+
+// addEvent add event channel
+func (l *Libvirt) addEvent(id uint32, c chan *libvirt.Event) {
+	l.em.Lock()
+	l.messages[id] = c
+	l.em.Unlock()
+}
+
+// delEvent del event channel
+func (l *Libvirt) delEvent(id uint32) {
+	l.em.Lock()
+	delete(l.messages, id)
+	l.em.Unlock()
 }
 
 // register configures a method response callback
@@ -265,36 +294,56 @@ func encode(data interface{}) (bytes.Buffer, error) {
 
 // decodeError extracts an error message from the provider buffer.
 func decodeError(buf []byte) error {
-	var e libvirt.Error
+	//	res := libvirt.RemoteError{}
+	res := struct {
+		Code     int
+		DomainID int
+		Message  *string `xdr:"optional"`
+		Level    int
+	}{}
 
+	// TODO: fix error parsing
 	dec := xdr.NewDecoder(bytes.NewReader(buf))
-	_, err := dec.Decode(&e)
+	_, err := dec.Decode(&res)
 	if err != nil {
 		return err
 	}
 
-	if strings.Contains(e.Message, "unknown procedure") {
+	if strings.Contains(*res.Message, "unknown procedure") || strings.Contains(*res.Message, "unsupported event") {
 		return libvirt.ErrUnsupported
 	}
 
-	return errors.New(e.Message)
+	return fmt.Errorf(*res.Message)
 }
 
-/*
 // decodeEvent extracts an event from the given byte slice.
 // Errors encountered will be returned along with a nil event.
-func decodeEvent(buf []byte) (*DomainEvent, error) {
-	var e DomainEvent
+func decodeEvent(res libvirt.Message) (*libvirt.Event, error) {
+	var err error
+	evt := libvirt.Event{}
 
-	dec := xdr.NewDecoder(bytes.NewReader(buf))
-	_, err := dec.Decode(&e)
+	dec := xdr.NewDecoder(bytes.NewReader(res.Payload))
+
+	msg := libvirt.LookupMsgTypeByProc(res.Header.Procedure)
+	if msg == nil {
+		return nil, libvirt.ErrUnsupported
+	}
+
+	cid, _, err := dec.DecodeInt()
 	if err != nil {
 		return nil, err
 	}
 
-	return &e, nil
+	evt.CallbackID = uint32(cid)
+
+	_, err = dec.Decode(&msg)
+	if err != nil {
+		return nil, err
+	}
+	evt.Msg = &msg
+
+	return &evt, nil
 }
-*/
 
 // pktlen determines the length of an incoming rpc response.
 // If an error is encountered reading the provided Reader, the
