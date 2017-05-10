@@ -23,51 +23,51 @@ func LookupMsgTypeByProc(proc RemoteProcedure) interface{} {
 
 	switch proc {
 	case RemoteProcDomainEventCallbackLifecycle:
-		msg = RemoteDomainEventCallbackLifecycleMsg{}
+		msg = &RemoteDomainEventCallbackLifecycleMsg{}
 	case RemoteProcDomainEventCallbackReboot:
-		msg = RemoteDomainEventCallbackRebootMsg{}
+		msg = &RemoteDomainEventCallbackRebootMsg{}
 	case RemoteProcDomainEventCallbackRtcChange:
-		msg = RemoteDomainEventCallbackRtcChangeMsg{}
+		msg = &RemoteDomainEventCallbackRtcChangeMsg{}
 	case RemoteProcDomainEventCallbackWatchdog:
-		msg = RemoteDomainEventCallbackWatchdogMsg{}
+		msg = &RemoteDomainEventCallbackWatchdogMsg{}
 	case RemoteProcDomainEventCallbackIoError:
-		msg = RemoteDomainEventCallbackIoErrorMsg{}
+		msg = &RemoteDomainEventCallbackIoErrorMsg{}
 	case RemoteProcDomainEventCallbackGraphics:
-		msg = RemoteDomainEventCallbackGraphicsMsg{}
+		msg = &RemoteDomainEventCallbackGraphicsMsg{}
 	case RemoteProcDomainEventCallbackIoErrorReason:
-		msg = RemoteDomainEventCallbackIoErrorReasonMsg{}
+		msg = &RemoteDomainEventCallbackIoErrorReasonMsg{}
 	case RemoteProcDomainEventCallbackControlError:
-		msg = RemoteDomainEventCallbackControlErrorMsg{}
+		msg = &RemoteDomainEventCallbackControlErrorMsg{}
 	case RemoteProcDomainEventCallbackBlockJob:
-		msg = RemoteDomainEventCallbackBlockJobMsg{}
+		msg = &RemoteDomainEventCallbackBlockJobMsg{}
 	case RemoteProcDomainEventCallbackDiskChange:
-		msg = RemoteDomainEventCallbackDiskChangeMsg{}
+		msg = &RemoteDomainEventCallbackDiskChangeMsg{}
 	case RemoteProcDomainEventCallbackTrayChange:
-		msg = RemoteDomainEventCallbackTrayChangeMsg{}
+		msg = &RemoteDomainEventCallbackTrayChangeMsg{}
 	case RemoteProcDomainEventCallbackPmwakeup:
-		msg = RemoteDomainEventCallbackPmwakeupMsg{}
+		msg = &RemoteDomainEventCallbackPmwakeupMsg{}
 	case RemoteProcDomainEventCallbackPmsuspend:
-		msg = RemoteDomainEventCallbackPmsuspendMsg{}
+		msg = &RemoteDomainEventCallbackPmsuspendMsg{}
 	case RemoteProcDomainEventCallbackBalloonChange:
-		msg = RemoteDomainEventCallbackBalloonChangeMsg{}
+		msg = &RemoteDomainEventCallbackBalloonChangeMsg{}
 	case RemoteProcDomainEventCallbackPmsuspendDisk:
-		msg = RemoteDomainEventCallbackPmsuspendDiskMsg{}
+		msg = &RemoteDomainEventCallbackPmsuspendDiskMsg{}
 	case RemoteProcDomainEventCallbackDeviceRemoved:
-		msg = RemoteDomainEventCallbackDeviceRemovedMsg{}
+		msg = &RemoteDomainEventCallbackDeviceRemovedMsg{}
 	case RemoteProcDomainEventCallbackTunable:
-		msg = RemoteDomainEventCallbackTunableMsg{}
+		msg = &RemoteDomainEventCallbackTunableMsg{}
 	case RemoteProcDomainEventCallbackAgentLifecycle:
-		msg = RemoteDomainEventCallbackAgentLifecycleMsg{}
+		msg = &RemoteDomainEventCallbackAgentLifecycleMsg{}
 	case RemoteProcDomainEventCallbackDeviceAdded:
-		msg = RemoteDomainEventCallbackDeviceAddedMsg{}
+		msg = &RemoteDomainEventCallbackDeviceAddedMsg{}
 	case RemoteProcDomainEventCallbackMigrationIteration:
-		msg = RemoteDomainEventCallbackMigrationIterationMsg{}
+		msg = &RemoteDomainEventCallbackMigrationIterationMsg{}
 	case RemoteProcDomainEventCallbackJobCompleted:
-		msg = RemoteDomainEventCallbackJobCompletedMsg{}
+		msg = &RemoteDomainEventCallbackJobCompletedMsg{}
 	case RemoteProcDomainEventCallbackDeviceRemovalFailed:
-		msg = RemoteDomainEventCallbackDeviceRemovalFailedMsg{}
+		msg = &RemoteDomainEventCallbackDeviceRemovalFailedMsg{}
 	case RemoteProcDomainEventCallbackMetadataChange:
-		msg = RemoteDomainEventCallbackMetadataChangeMsg{}
+		msg = &RemoteDomainEventCallbackMetadataChangeMsg{}
 	default:
 		msg = nil
 	}

@@ -2421,6 +2421,7 @@ type RemoteConnectDomainEventDeregisterAnyReq struct {
 
 type RemoteConnectDomainEventCallbackRegisterAnyReq struct {
 	EventID int
+	Padding [4]byte
 	Domain  *RemoteDomain
 }
 

@@ -330,13 +330,6 @@ func decodeEvent(res libvirt.Message) (*libvirt.Event, error) {
 		return nil, libvirt.ErrUnsupported
 	}
 
-	cid, _, err := dec.DecodeInt()
-	if err != nil {
-		return nil, err
-	}
-
-	evt.CallbackID = uint32(cid)
-
 	_, err = dec.Decode(&msg)
 	if err != nil {
 		return nil, err
