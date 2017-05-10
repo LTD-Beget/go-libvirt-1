@@ -298,6 +298,7 @@ func decodeError(buf []byte) error {
 	res := struct {
 		Code     int
 		DomainID int
+		Padding  uint8
 		Message  *string `xdr:"optional"`
 		Level    int
 	}{}
